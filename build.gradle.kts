@@ -1,22 +1,29 @@
 plugins {
-    kotlin("jvm") version "2.2.21"
+    kotlin("jvm") version "2.2.21" apply false
+    kotlin("plugin.spring") version "2.2.21" apply false
+    kotlin("plugin.jpa") version "2.2.21" apply false
+    kotlin("plugin.serialization") version "2.2.21" apply false
+    id("org.springframework.boot") version "3.5.9" apply false
+    id("io.spring.dependency-management") version "1.1.7" apply false
+    id("com.gradleup.shadow") version "8.3.9" apply false
 }
 
-group = "space.diomentia"
-version = "1.0-SNAPSHOT"
+allprojects {
+    group = "space.diomentia"
+    version = providers.gradleProperty("ehz.version").getOrElse("0.1.0-SNAPSHOT")
 
-repositories {
-    mavenCentral()
+    repositories {
+        mavenCentral()
+    }
 }
 
-dependencies {
-    testImplementation(kotlin("test"))
-}
-
-kotlin {
-    jvmToolchain(21)
-}
-
-tasks.test {
-    useJUnitPlatform()
+subprojects {
+    plugins.withId("org.jetbrains.kotlin.jvm") {
+        extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension> {
+            jvmToolchain(21)
+        }
+    }
+    tasks.withType<Test>().configureEach {
+        useJUnitPlatform()
+    }
 }
