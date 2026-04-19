@@ -1,6 +1,6 @@
 package space.diomentia.ehzbackend.dashboard
 
-import org.springframework.beans.factory.annotation.Value
+import jakarta.servlet.http.HttpServletResponse
 import org.springframework.boot.info.BuildProperties
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
@@ -13,6 +13,8 @@ import java.net.NetworkInterface
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import javax.sql.DataSource
 
 /**
@@ -37,16 +39,26 @@ class DashboardController(
     private val dataSource: DataSource,
     private val reportRepository: ReportRepository,
     private val credentialsStore: CredentialsStore,
-    @param:Value("\${ehz.public-api-port:19081}") private val apiPort: Int,
-    @param:Value("\${ehz.data-dir}") private val dataDir: String,
+    private val apiPort: Int,
+    private val dataDir: String,
     private val buildProperties: BuildProperties?,
 ) {
 
     @GetMapping("/")
-    fun index(model: Model): String {
+    fun index(model: Model, response: HttpServletResponse): String {
+        // The rendered page embeds the plaintext API key verbatim. Disabling
+        // all caches here keeps it out of the browser's disk cache and any
+        // intermediate proxy caches — localhost-only binding protects against
+        // network leaks, but a cached copy on disk would still survive.
+        response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate")
+        response.setHeader("Pragma", "no-cache")
+
         val now = Instant.now()
         val photosRoot = Path.of(dataDir).toAbsolutePath().resolve("photos")
         val dataDirPath = Path.of(dataDir).toAbsolutePath()
+
+        val freeDiskBytes = probeFreeBytes(dataDirPath)
+        val mostRecent = reportRepository.findTopByOrderByReceivedAtDesc()?.receivedAt
 
         model.addAttribute("serverIp", firstNonLoopbackIpv4() ?: "unknown")
         model.addAttribute("apiPort", apiPort)
@@ -57,7 +69,8 @@ class DashboardController(
             DashboardHealth(
                 dbUp = probeDb(),
                 photosDirWritable = probeWritable(photosRoot),
-                freeDiskBytes = probeFreeBytes(dataDirPath),
+                freeDiskBytes = freeDiskBytes,
+                freeDiskHuman = formatBytes(freeDiskBytes),
             ),
         )
         model.addAttribute(
@@ -66,7 +79,8 @@ class DashboardController(
                 total = reportRepository.count(),
                 last24h = reportRepository.countByReceivedAtAfter(now.minusSeconds(24 * 3600)),
                 last7d = reportRepository.countByReceivedAtAfter(now.minusSeconds(7 * 24 * 3600)),
-                mostRecent = reportRepository.findTopByOrderByReceivedAtDesc()?.receivedAt,
+                mostRecent = mostRecent,
+                mostRecentHuman = formatInstant(mostRecent),
             ),
         )
         model.addAttribute("apiKey", credentialsStore.apiKey)
@@ -99,6 +113,32 @@ class DashboardController(
     }
 
     /**
+     * Base-1024 byte formatting for operator display. `-1` (our "could not
+     * stat" sentinel from [probeFreeBytes]) renders as a dash. Values under 1
+     * KiB render as raw bytes — anything larger picks the largest unit that
+     * keeps the number under 1024 and shows one decimal.
+     */
+    private fun formatBytes(bytes: Long): String {
+        if (bytes < 0) return "—"
+        if (bytes < 1024) return "$bytes B"
+        val units = arrayOf("KB", "MB", "GB", "TB", "PB")
+        var value = bytes.toDouble() / 1024.0
+        var unitIndex = 0
+        while (value >= 1024.0 && unitIndex < units.lastIndex) {
+            value /= 1024.0
+            unitIndex++
+        }
+        return "%.1f %s".format(value, units[unitIndex])
+    }
+
+    /**
+     * Render an [Instant] as `yyyy-MM-dd HH:mm UTC`. `null` (empty reports
+     * table) renders as a dash.
+     */
+    private fun formatInstant(instant: Instant?): String =
+        if (instant == null) "—" else INSTANT_FORMATTER.format(instant)
+
+    /**
      * First non-loopback, non-link-local IPv4 on any active interface. Returns
      * null if the host has only loopback interfaces (common in CI containers).
      */
@@ -122,6 +162,11 @@ class DashboardController(
         }
         return null
     }
+
+    private companion object {
+        private val INSTANT_FORMATTER: DateTimeFormatter =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm 'UTC'").withZone(ZoneOffset.UTC)
+    }
 }
 
 /** Boolean/bytes snapshot shown under the "Health" section of the dashboard. */
@@ -130,6 +175,8 @@ data class DashboardHealth(
     val photosDirWritable: Boolean,
     /** -1 when the data dir could not be stat'd. */
     val freeDiskBytes: Long,
+    /** Operator-facing rendering of [freeDiskBytes] (base-1024 units, or "—"). */
+    val freeDiskHuman: String,
 )
 
 /** Counts + freshness shown under the "Reports" section of the dashboard. */
@@ -139,4 +186,6 @@ data class DashboardReportCounts(
     val last7d: Long,
     /** null on an empty reports table. */
     val mostRecent: Instant?,
+    /** Operator-facing rendering of [mostRecent] (`yyyy-MM-dd HH:mm UTC`, or "—"). */
+    val mostRecentHuman: String,
 )

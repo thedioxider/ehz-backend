@@ -42,7 +42,7 @@
     </tr>
     <tr>
         <td class="k">Free disk</td>
-        <td class="mono" th:text="${health.freeDiskBytes} + ' bytes'">0 bytes</td>
+        <td class="mono" th:text="${health.freeDiskHuman}">0 B</td>
     </tr>
 </table>
 
@@ -53,13 +53,12 @@
     <tr><td class="k">Last 7d</td><td class="mono" th:text="${reportCounts.last7d}">0</td></tr>
     <tr>
         <td class="k">Most recent</td>
-        <td class="mono"
-            th:text="${reportCounts.mostRecent != null} ? ${reportCounts.mostRecent} : '(none)'">(none)</td>
+        <td class="mono" th:text="${reportCounts.mostRecentHuman}">—</td>
     </tr>
 </table>
 
 <h2>API key</h2>
 <p>Copy this value into the companion app during pairing.</p>
-<code class="key" th:text="${apiKey}" onclick="if (window.getSelection &amp;&amp; document.createRange) { var r = document.createRange(); r.selectNodeContents(this); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); }">…</code>
+<code class="key" th:text="${apiKey}">…</code>
 </body>
 </html>
