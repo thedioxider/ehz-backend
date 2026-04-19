@@ -45,7 +45,7 @@ class ReportQueryService(
         } else {
             siteRepository
                 .countByReportIdIn(reports.content.map { it.id })
-                .associate { row -> (row[0] as UUID) to (row[1] as Long) }
+                .associate { it.reportId to it.count }
         }
 
         return reports.map { r ->
@@ -65,14 +65,15 @@ class ReportQueryService(
     /**
      * Full detail for a single report, including all sites + fields. Returns
      * `null` when the id is unknown — the controller maps this to 404.
+     *
+     * Uses [ReportRepository.findDetailById] so sites + their fields come back
+     * in a single join-fetch, sidestepping the N+1 that a lazy walk would
+     * trigger here.
      */
     @Transactional(readOnly = true)
     fun detail(id: UUID): ReportDetailDto? {
-        val report = reportRepository.findById(id).orElse(null) ?: return null
-        // Touch lazy collections inside the tx so serialization doesn't trip.
-        val sites = siteRepository
-            .findAll(siteByReportSpec(id))
-            .sortedBy { it.timestamp }
+        val report = reportRepository.findDetailById(id) ?: return null
+        val sites = report.sites.sortedBy { it.timestamp }
 
         return ReportDetailDto(
             id = report.id,
@@ -117,15 +118,18 @@ class ReportQueryService(
             filter.to?.let { predicates += cb.lessThan(root.get("startTime"), it) }
             filter.routeId?.let { predicates += cb.equal(root.get<Any>("route").get<UUID>("id"), it) }
             filter.sectionId?.let { predicates += cb.equal(root.get<Any>("section").get<UUID>("id"), it) }
-            filter.inspector?.takeIf { it.isNotBlank() }?.let {
-                predicates += cb.like(cb.lower(root.get("inspector")), "%${it.lowercase()}%")
+            filter.inspector?.takeIf { s -> s.isNotBlank() }?.let { raw ->
+                // User input is a substring match, not a pattern — escape the
+                // LIKE metacharacters (`%`, `_`) plus the escape char itself so
+                // an inspector name containing `_` doesn't silently match
+                // anything, and a `%` doesn't widen the match.
+                val escaped = raw.lowercase()
+                    .replace("\\", "\\\\")
+                    .replace("%", "\\%")
+                    .replace("_", "\\_")
+                predicates += cb.like(cb.lower(root.get("inspector")), "%$escaped%", '\\')
             }
             if (predicates.isEmpty()) null else cb.and(*predicates.toTypedArray())
-        }
-
-    private fun siteByReportSpec(reportId: UUID): Specification<Site> =
-        Specification { root, _, cb ->
-            cb.equal(root.get<Any>("report").get<UUID>("id"), reportId)
         }
 }
 

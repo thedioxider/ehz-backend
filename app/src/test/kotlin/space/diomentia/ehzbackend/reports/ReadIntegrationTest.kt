@@ -149,6 +149,69 @@ class ReadIntegrationTest : AbstractPostgresIntegrationTest() {
     }
 
     @Test
+    fun `inspector filter treats LIKE wildcards as literals`() {
+        val routeId = UUID.randomUUID()
+        val sectionId = UUID.randomUUID()
+
+        // Two inspectors under the same route: one contains a literal `_`,
+        // one doesn't. Without escape, `?inspector=_` (LIKE `%_%`) would
+        // match both (since `_` = any single char). With escape, only the
+        // one containing a real underscore matches.
+        val withUnderscore = "Ivan_Petrov"
+        val withoutUnderscore = "AlphaBeta"
+
+        ingest(
+            listOf(
+                TestFixtures.reportPayload(
+                    reportId = UUID.randomUUID(),
+                    routeId = routeId,
+                    sectionId = sectionId,
+                    siteId = UUID.randomUUID(),
+                    inspector = withUnderscore,
+                    routeName = "Escape-route",
+                ),
+                TestFixtures.reportPayload(
+                    reportId = UUID.randomUUID(),
+                    routeId = routeId,
+                    sectionId = sectionId,
+                    siteId = UUID.randomUUID(),
+                    inspector = withoutUnderscore,
+                    routeName = "Escape-route",
+                ),
+            ),
+        )
+
+        // `_` must match only the inspector that actually contains `_`.
+        mockMvc.get("/api/reports") {
+            param("route", routeId.toString())
+            param("inspector", "_")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.content.length()") { value(1) }
+            jsonPath("$.content[0].inspector") { value(withUnderscore) }
+        }
+
+        // `%` is not present in either stored inspector — must match nothing.
+        mockMvc.get("/api/reports") {
+            param("route", routeId.toString())
+            param("inspector", "%")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.content.length()") { value(0) }
+        }
+
+        // The literal substring `Ivan_Petrov` still matches that one row.
+        mockMvc.get("/api/reports") {
+            param("route", routeId.toString())
+            param("inspector", "Ivan_Petrov")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.content.length()") { value(1) }
+            jsonPath("$.content[0].inspector") { value(withUnderscore) }
+        }
+    }
+
+    @Test
     fun `list caps size at MAX_PAGE_SIZE`() {
         // We don't need 100+ rows to prove the cap — the response's page.size
         // reflects the Pageable the service used, so one row is enough.

@@ -77,7 +77,7 @@ class PhotoStorage(
 
     /**
      * Resolve a previously-persisted relative path back to an absolute [Path].
-     * Used by the future GET /api/photos endpoint (Step 4).
+     * Used by the photo read endpoint.
      */
     fun resolve(relativePath: String): Path {
         val resolved = dataDirPath.resolve(relativePath).normalize().toAbsolutePath()
