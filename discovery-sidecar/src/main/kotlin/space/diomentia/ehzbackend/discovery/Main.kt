@@ -43,14 +43,26 @@ fun main() {
 
 /** First non-loopback, non-link-local IPv4 across enabled interfaces. */
 internal fun pickLanIpv4(): InetAddress? {
-    val ifaces = NetworkInterface.getNetworkInterfaces() ?: return null
-    for (iface in ifaces) {
+    val candidates = mutableListOf<Pair<String, InetAddress>>()
+    for (iface in NetworkInterface.getNetworkInterfaces() ?: return null) {
         if (!iface.isUp || iface.isLoopback) continue
         for (addr in iface.inetAddresses) {
             if (addr is Inet4Address && !addr.isLoopbackAddress && !addr.isLinkLocalAddress) {
-                return addr
+                candidates += iface.name to addr
             }
         }
     }
-    return null
+    return when (candidates.size) {
+        0 -> null
+        1 -> candidates[0].second.also {
+            log.info("auto-picked LAN IPv4 {} on {}", it.hostAddress, candidates[0].first)
+        }
+        else -> {
+            log.warn(
+                "multiple LAN IPv4 candidates found (picked first); consider setting EHZ_ANNOUNCE_IP explicitly. candidates={}",
+                candidates.joinToString { "${it.second.hostAddress} (${it.first})" },
+            )
+            candidates[0].second
+        }
+    }
 }

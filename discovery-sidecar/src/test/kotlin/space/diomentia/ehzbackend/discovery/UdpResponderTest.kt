@@ -59,7 +59,7 @@ class UdpResponderTest {
             check(target > 0) { "responder failed to bind" }
 
             DatagramSocket().use { client ->
-                client.soTimeout = 300
+                client.soTimeout = 1_000
                 val junk = "hello-world".toByteArray(Charsets.US_ASCII)
                 val loopback = InetAddress.getByName("127.0.0.1")
                 client.send(DatagramPacket(junk, junk.size, loopback, target))

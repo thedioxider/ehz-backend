@@ -40,10 +40,11 @@ class MdnsAnnouncer(
                 SERVICE_NAME, SERVICE_TYPE, ip.hostAddress, port, HOSTNAME, contractVersion,
             )
         } catch (e: IOException) {
-            log.warn("mDNS disabled: could not bind multicast socket ({})", e.message)
-        } catch (e: RuntimeException) {
-            // JmDNS wraps some bind failures in unchecked exceptions.
+            // Predictable: port 5353/udp is busy (Avahi on host). Don't spam the full trace.
             log.warn("mDNS disabled: {}", e.message)
+        } catch (e: RuntimeException) {
+            // Anything else from JmDNS (NPE, IllegalStateException) — operator needs the trace.
+            log.warn("mDNS disabled unexpectedly", e)
         }
     }
 

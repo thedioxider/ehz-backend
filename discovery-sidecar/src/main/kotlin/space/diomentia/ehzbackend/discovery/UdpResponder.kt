@@ -28,6 +28,7 @@ class UdpResponder(
     private val log = LoggerFactory.getLogger(UdpResponder::class.java)
     private var socket: DatagramSocket? = null
     private var thread: Thread? = null
+    @Volatile private var stopping = false
 
     /**
      * The port the socket actually bound to. Useful when [listenPort] was 0
@@ -71,8 +72,9 @@ class UdpResponder(
             val packet = DatagramPacket(buf, buf.size)
             try {
                 bound.receive(packet)
-            } catch (_: SocketException) {
-                // Socket closed from close() — normal shutdown.
+            } catch (e: SocketException) {
+                if (stopping) return   // expected close
+                log.error("UDP receive loop aborted unexpectedly", e)
                 return
             } catch (e: Exception) {
                 log.error("UDP receive failed", e)
@@ -100,8 +102,8 @@ class UdpResponder(
     fun close() {
         val s = socket ?: return
         socket = null
+        stopping = true
         s.close()
-        thread?.interrupt()
         thread = null
     }
 
