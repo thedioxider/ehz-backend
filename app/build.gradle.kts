@@ -12,7 +12,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
-    implementation("org.liquibase:liquibase-core")
+    // Boot 4 split Liquibase autoconfig out of the core framework jar; `spring-boot-liquibase`
+    // pulls in `liquibase-core` plus the autoconfig/metadata that wires up Liquibase at startup.
+    implementation("org.springframework.boot:spring-boot-liquibase")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
@@ -21,8 +23,10 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
-    testImplementation("org.testcontainers:junit-jupiter")
-    testImplementation("org.testcontainers:postgresql")
+    // Testcontainers 2.x renamed the module artifacts: `junit-jupiter` -> `testcontainers-junit-jupiter`,
+    // `postgresql` -> `testcontainers-postgresql`.
+    testImplementation("org.testcontainers:testcontainers-junit-jupiter")
+    testImplementation("org.testcontainers:testcontainers-postgresql")
 }
 
 springBoot {
