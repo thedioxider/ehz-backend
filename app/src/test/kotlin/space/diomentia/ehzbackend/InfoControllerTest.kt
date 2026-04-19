@@ -8,9 +8,10 @@ import org.springframework.test.web.servlet.get
 
 /**
  * Covers `/api/info`, `/api/ping`, and the cross-cutting `X-Contract-Version`
- * interceptor. The `/api/reports` assertion exists specifically to prove the
- * interceptor is registered for the whole API umbrella, not just wired into
- * the info endpoints.
+ * filter. The `/api/reports` assertion exists specifically to prove the
+ * filter covers the whole API umbrella, not just the info endpoints; the
+ * 404 assertion proves it also stamps responses that never reach a handler,
+ * which is the scenario a client uses to diagnose a contract mismatch.
  */
 @AutoConfigureMockMvc
 class InfoControllerTest : AbstractPostgresIntegrationTest() {
@@ -41,10 +42,22 @@ class InfoControllerTest : AbstractPostgresIntegrationTest() {
     @Test
     fun `contract version header is stamped on all api responses`() {
         // `/api/reports` is a fully-unrelated endpoint — its response carrying
-        // the header proves the interceptor covers the whole API tree,
-        // not just this test's own controller.
+        // the header proves the filter covers the whole API tree, not just
+        // this test's own controller.
         mockMvc.get("/api/reports").andExpect {
             status { isOk() }
+            header { string(ApiContract.HEADER_NAME, ApiContract.VERSION.toString()) }
+        }
+    }
+
+    @Test
+    fun `contract version header is stamped on api 404 responses`() {
+        // Unknown `/api/...` paths never reach a Spring handler, so a
+        // HandlerInterceptor would miss them. The filter runs regardless —
+        // clients hitting a retired endpoint still get the version header and
+        // can diagnose the contract mismatch instead of a bare 404.
+        mockMvc.get("/api/does-not-exist").andExpect {
+            status { isNotFound() }
             header { string(ApiContract.HEADER_NAME, ApiContract.VERSION.toString()) }
         }
     }

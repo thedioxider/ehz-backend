@@ -30,19 +30,14 @@ class SchemaIntegrationTest : AbstractPostgresIntegrationTest() {
 
     @Test
     fun `context starts and repositories are wired`() {
+        // The real assertion this test delivers is the class body itself:
+        // if the Spring context boots under `ddl-auto=validate` against the
+        // Liquibase-applied schema, the JPA entities line up with it. A
+        // `count()` on a healthy JPA repository is always `>= 0`, so asserting
+        // that adds nothing — just prove the beans wired.
         assertThat(deviceRepository).isNotNull
         assertThat(routeRepository).isNotNull
         assertThat(sectionRepository).isNotNull
         assertThat(reportRepository).isNotNull
-
-        // Touch each repository against the live schema to exercise the query layer.
-        // `routes` / `sections` are seeded by SeedLoader on ApplicationReadyEvent, and
-        // other integration tests in the same JVM may have ingested reports into the
-        // shared container — so we assert non-negative rather than zero. The point of
-        // this test is "repositories talk to the live schema", not row volume.
-        assertThat(deviceRepository.count()).isNotNegative()
-        assertThat(routeRepository.count()).isNotNegative()
-        assertThat(sectionRepository.count()).isNotNegative()
-        assertThat(reportRepository.count()).isNotNegative()
     }
 }
