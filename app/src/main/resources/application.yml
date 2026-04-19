@@ -53,5 +53,9 @@ management:
 
 ehz:
   data-dir: ${EHZ_DATA_DIR:./data}
+  # Directory that holds operator-editable config overrides (e.g. report-config.yaml).
+  # Falls back to `${ehz.data-dir}/config` when no env var is set — Spring resolves the
+  # nested ${} placeholder natively.
+  config-dir: ${EHZ_CONFIG_DIR:${ehz.data-dir}/config}
   # LAN ingest listener (app-facing). Added programmatically via WebServerFactoryCustomizer.
   lan-ingest-port: ${EHZ_LAN_INGEST_PORT:8081}

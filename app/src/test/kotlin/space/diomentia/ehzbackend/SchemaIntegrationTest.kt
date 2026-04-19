@@ -36,9 +36,13 @@ class SchemaIntegrationTest : AbstractPostgresIntegrationTest() {
         assertThat(reportRepository).isNotNull
 
         // Touch each repository against the live schema to exercise the query layer.
-        assertThat(deviceRepository.count()).isZero()
-        assertThat(routeRepository.count()).isZero()
-        assertThat(sectionRepository.count()).isZero()
-        assertThat(reportRepository.count()).isZero()
+        // `routes` / `sections` are seeded by SeedLoader on ApplicationReadyEvent, and
+        // other integration tests in the same JVM may have ingested reports into the
+        // shared container — so we assert non-negative rather than zero. The point of
+        // this test is "repositories talk to the live schema", not row volume.
+        assertThat(deviceRepository.count()).isNotNegative()
+        assertThat(routeRepository.count()).isNotNegative()
+        assertThat(sectionRepository.count()).isNotNegative()
+        assertThat(reportRepository.count()).isNotNegative()
     }
 }
