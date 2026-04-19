@@ -15,11 +15,28 @@ spring:
           time_zone: UTC
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.xml
+  jackson:
+    datatype:
+      datetime:
+        # Interpret numeric Instant values as epoch seconds (not nanos).
+        # The app currently emits epoch-seconds integers; ISO-8601 strings also work.
+        # Jackson 3 moved date/time-specific features out of DeserializationFeature
+        # into DateTimeFeature, so this lives under spring.jackson.datatype.datetime.*
+        # (Boot 4), not spring.jackson.deserialization.* (Boot 3).
+        read-date-timestamps-as-nanoseconds: false
+  servlet:
+    multipart:
+      max-request-size: 64MB
+      max-file-size: 64MB
 
 server:
   # Internal API — reachable only from the Docker bridge network (compose doesn't publish 8082).
   port: 8082
   address: 0.0.0.0
+  tomcat:
+    max-http-form-post-size: 64MB
+    max-swallow-size: 64MB
+  max-http-request-header-size: 16KB
 
 management:
   server:

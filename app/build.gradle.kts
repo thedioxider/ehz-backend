@@ -15,13 +15,20 @@ dependencies {
     // Boot 4 split Liquibase autoconfig out of the core framework jar; `spring-boot-liquibase`
     // pulls in `liquibase-core` plus the autoconfig/metadata that wires up Liquibase at startup.
     implementation("org.springframework.boot:spring-boot-liquibase")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml")
+    // Boot 4 ships Jackson 3 (group-id `tools.jackson`, package `tools.jackson.*`) as the default
+    // JSON mapper and auto-configures a `tools.jackson.databind.json.JsonMapper` bean. Jackson 2's
+    // `com.fasterxml.jackson.databind.ObjectMapper` is NOT auto-configured — use the Jackson 3
+    // equivalents. Annotations in `com.fasterxml.jackson.annotation.*` remain unchanged across 2/3.
+    implementation("tools.jackson.module:jackson-module-kotlin")
+    implementation("tools.jackson.dataformat:jackson-dataformat-yaml")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
     runtimeOnly("org.postgresql:postgresql")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    // Boot 4 moved MockMvc autoconfigure (@AutoConfigureMockMvc, @WebMvcTest) into its own
+    // module under the webmvc tree (package `org.springframework.boot.webmvc.test.autoconfigure`).
+    testImplementation("org.springframework.boot:spring-boot-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     // Testcontainers 2.x renamed the module artifacts: `junit-jupiter` -> `testcontainers-junit-jupiter`,
     // `postgresql` -> `testcontainers-postgresql`.
@@ -36,7 +43,11 @@ springBoot {
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     compilerOptions {
-        freeCompilerArgs.addAll("-Xjsr305=strict")
+        // -Xjsr305=strict: treat JSR-305 @Nonnull/@CheckForNull from Spring as strict Kotlin nullability.
+        // -Xannotation-default-target=param-property: opt in to KT-73255's future behavior — annotations
+        //   on constructor params (e.g. Jackson's @JsonProperty) apply to both the param and the backing
+        //   field, which is what we want for data-class DTOs.
+        freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
     }
 }
 
