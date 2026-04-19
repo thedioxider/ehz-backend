@@ -62,4 +62,4 @@ ehz:
   # Host-facing port the Android app actually connects to. Compose maps this to
   # the container's `lan-ingest-port` (8081 inside). Surfaced on the dashboard
   # so the operator can read off the right number when onboarding a device.
-  public-api-port: ${EHZ_PUBLIC_API_PORT:19081}
+  public-api-port: ${EHZ_PUBLIC_API_PORT:8081}

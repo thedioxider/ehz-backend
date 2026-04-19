@@ -224,14 +224,8 @@ python3 -c 'import socket; s=socket.socket(socket.AF_INET, socket.SOCK_DGRAM); \
 # {"ip":"<host-lan-ip>","port":19081,"apiBasePath":"/api","version":1}
 ```
 
-**Rootless Docker caveat.** When Docker runs rootless on this host, a
-`network_mode: host` container lives inside `slirp4netns`'s own netns, NOT the
-true host. A probe from the real host loopback will time out; you'd need to
-enter the sidecar's netns (`docker compose exec -T discovery-sidecar sh -c
-'echo -n EHZ_DISCOVER_V1 | nc -u -w2 127.0.0.1 5370'`) to confirm the responder
-is alive. On a rootful Docker deploy (the default production setup), the probe
-from the real host succeeds directly. Either way, the authoritative LAN
-discovery test is item 11 below from a second machine.
+The authoritative LAN discovery test is item 11 below from a second machine —
+probing via the host loopback only exercises local sanity.
 
 ## Operator-checklist items (second LAN machine)
 
@@ -300,22 +294,10 @@ behaves identically to the Docker Hub path.
 - **LAN ingest 401 with a key that matches `credentials.txt`.** Most likely a
   CR/LF artefact in the shell — make sure you strip whitespace:
   `API_KEY=$(grep EHZ_API_KEY ./data/credentials.txt | cut -d= -f2 | tr -d '\r\n ')`.
-- **UDP discovery probe times out on rootless Docker.** See the caveat in step
-  10 — `network_mode: host` points at `slirp4netns`'s namespace, not the real
-  host loopback. Test from inside the sidecar, or validate from a second LAN
-  machine.
 - **Discovery sidecar logs "multiple LAN IPv4 candidates found".** The sidecar
   picked the first non-loopback IPv4 alphabetically. If it chose the wrong NIC
   (e.g. a Docker bridge address instead of your WLAN address), set
   `EHZ_ANNOUNCE_IP=<the-right-ip>` in `.env` and `docker compose up -d`.
-- **`docker build` fails with DNS errors on rootless NixOS.** The rootless
-  daemon inherits slirp4netns DNS (10.0.2.3) and when systemd-resolved isn't
-  reachable from the namespace, image pulls inside the builder time out. Two
-  workarounds: (a) set `dns` in `~/.config/docker/daemon.json` and restart the
-  user service; (b) create a dedicated buildx builder with a custom
-  `buildkitd.toml` containing `[dns] nameservers = ["1.1.1.1"]` and export
-  `BUILDX_BUILDER=<that-builder-name>` before running `docker compose build`
-  or `./gradlew release`.
 
 ## Sample ingest payload
 
