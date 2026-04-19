@@ -7,6 +7,8 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import org.hibernate.annotations.Generated
+import org.hibernate.generator.EventType
 import space.diomentia.ehzbackend.catalog.Route
 import space.diomentia.ehzbackend.catalog.Section
 import space.diomentia.ehzbackend.devices.Device
@@ -42,6 +44,7 @@ class Report(
     var endTime: Instant? = null,
 
     // Populated by DB default (now()); read-only from the entity side.
+    @Generated(event = [EventType.INSERT])
     @Column(name = "received_at", insertable = false, updatable = false)
     var receivedAt: Instant? = null,
 )

@@ -46,4 +46,12 @@ class ReportField(
     // For type=photo, stores a relative path under /data/photos/.
     @Column(name = "value")
     var value: String? = null,
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ReportField) return false
+        return specId == other.specId && site.id == other.site.id
+    }
+
+    override fun hashCode(): Int = 31 * (site.id?.hashCode() ?: 0) + specId.hashCode()
+}

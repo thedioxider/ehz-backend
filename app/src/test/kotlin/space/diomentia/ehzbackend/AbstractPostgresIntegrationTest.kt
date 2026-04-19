@@ -1,8 +1,7 @@
 package space.diomentia.ehzbackend
 
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.postgresql.PostgreSQLContainer
@@ -20,15 +19,8 @@ abstract class AbstractPostgresIntegrationTest {
 
     companion object {
         @Container
+        @ServiceConnection
         @JvmStatic
         val postgres: PostgreSQLContainer = PostgreSQLContainer("postgres:16-alpine")
-
-        @DynamicPropertySource
-        @JvmStatic
-        fun datasourceProps(registry: DynamicPropertyRegistry) {
-            registry.add("spring.datasource.url", postgres::getJdbcUrl)
-            registry.add("spring.datasource.username", postgres::getUsername)
-            registry.add("spring.datasource.password", postgres::getPassword)
-        }
     }
 }
