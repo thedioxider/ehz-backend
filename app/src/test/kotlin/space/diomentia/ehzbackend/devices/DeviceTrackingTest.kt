@@ -98,11 +98,9 @@ class DeviceTrackingTest : AbstractPostgresIntegrationTest() {
             ),
         )
         ingest(first, deviceId = deviceId.toString())
-        val firstSeenAfter = deviceRepository.findById(deviceId).orElseThrow().firstSeen
-        val lastSeenAfter = deviceRepository.findById(deviceId).orElseThrow().lastSeen
-
-        // Ensure wall-clock moves enough to produce a distinguishable Instant.
-        Thread.sleep(10)
+        val afterFirst = deviceRepository.findById(deviceId).orElseThrow()
+        val firstSeenAfter = afterFirst.firstSeen
+        val firstLastSeen = afterFirst.lastSeen
 
         val second = listOf(
             TestFixtures.reportPayload(
@@ -115,8 +113,11 @@ class DeviceTrackingTest : AbstractPostgresIntegrationTest() {
 
         val afterSecond = deviceRepository.findById(deviceId).orElseThrow()
         assertThat(afterSecond.firstSeen).isEqualTo(firstSeenAfter) // unchanged
-        assertThat(afterSecond.lastSeen).isAfterOrEqualTo(lastSeenAfter)
-        assertThat(afterSecond.lastSeen).isNotEqualTo(firstSeenAfter)
+        // last_seen must advance across two requests. `now()` from the JVM
+        // clock is typically distinct; if this flakes (two requests landing in
+        // the same microsecond of DB TIMESTAMPTZ resolution) switch to
+        // `isAfterOrEqualTo` with a comment.
+        assertThat(afterSecond.lastSeen).isAfter(firstLastSeen)
     }
 
     @Test

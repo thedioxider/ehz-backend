@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.attribute.FileAttribute
 import java.nio.file.attribute.PosixFilePermissions
 import java.security.SecureRandom
 import java.util.Base64
@@ -21,10 +22,11 @@ import java.util.Base64
  *      `EHZ_API_KEY=<value>` lines (comments via `#` and blank lines
  *      ignored). Any other keys are tolerated for forward-compatibility.
  *   3. If the file is absent, generate a fresh 32-byte URL-safe base64 token
- *      (no padding), create the file with POSIX `rw-------` (600), and record
- *      `EHZ_API_KEY=<value>`. POSIX perms are best-effort — on a non-POSIX
- *      filesystem we fall back to the `java.io.File` setters so the file is
- *      still owner-read/write only.
+ *      (no padding), create the file with POSIX `rw-------` (600) as an atomic
+ *      `createFile` attribute (so the file is never world-readable, even
+ *      briefly, between creation and chmod), and record `EHZ_API_KEY=<value>`.
+ *      On a non-POSIX filesystem we log a warning and fall back to the
+ *      `java.io.File` setters as best-effort.
  *
  * Runs in `@PostConstruct` (not `@EventListener(ApplicationReadyEvent)`) so
  * [LanIngestFilter] — which is built during context startup — can inject the
@@ -96,29 +98,37 @@ class CredentialsStore(
 
     private fun writeCredentials(file: Path, key: String) {
         val contents = "$ENV_VAR_NAME=$key\n"
-        Files.writeString(file, contents)
-        applyOwnerOnlyPerms(file)
-    }
-
-    private fun applyOwnerOnlyPerms(file: Path) {
-        try {
-            Files.setPosixFilePermissions(file, PosixFilePermissions.fromString("rw-------"))
-            return
+        // Create the file with owner-only perms up front so it's never world-readable,
+        // even briefly, between creation and a subsequent chmod.
+        val posixAttr: FileAttribute<Set<java.nio.file.attribute.PosixFilePermission>>? = try {
+            PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))
         } catch (_: UnsupportedOperationException) {
-            // Non-POSIX filesystem — fall through to the java.io.File best-effort path.
-        } catch (e: Exception) {
-            log.warn("Could not set POSIX perms on {}: {}", file, e.message)
+            null
         }
+        if (posixAttr != null) {
+            try {
+                Files.createFile(file, posixAttr)
+                Files.writeString(file, contents)
+                return
+            } catch (_: UnsupportedOperationException) {
+                // FileSystem rejected POSIX attrs at createFile time — fall through.
+            }
+        }
+        // Non-POSIX FS (Windows, some tmpfs). Fall back to best-effort.
+        Files.writeString(file, contents)
         val f = file.toFile()
         f.setReadable(false, false)
         f.setReadable(true, true)
         f.setWritable(false, false)
         f.setWritable(true, true)
+        log.warn("credentials.txt permission tightening is best-effort on non-POSIX FS: {}", file)
     }
 
     private fun generateKey(): String {
-        // SecureRandom.generateSeed is a blocking seed pull; fine at startup (one-shot).
-        val bytes = SecureRandom().generateSeed(32)
+        // nextBytes draws from the configured non-blocking provider; generateSeed
+        // unconditionally pulls from the blocking entropy source on Linux and can
+        // stall startup on entropy-starved (fresh container) kernels.
+        val bytes = ByteArray(32).also { SecureRandom().nextBytes(it) }
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
     }
 
