@@ -247,6 +247,63 @@ class IngestIntegrationTest : AbstractPostgresIntegrationTest() {
     }
 
     @Test
+    fun `rejects photo field whose spec_id would escape the photos root`() {
+        val reportId = UUID.randomUUID()
+        val routeId = UUID.randomUUID()
+        val sectionId = UUID.randomUUID()
+        val siteId = UUID.randomUUID()
+
+        val photoBytes = ByteArray(16) { it.toByte() }
+        val photoBase64 = Base64.getEncoder().encodeToString(photoBytes)
+
+        val payload = listOf(
+            mapOf(
+                "id" to reportId.toString(),
+                "inspector" to "Иванов Иван",
+                "route" to mapOf(
+                    "id" to routeId.toString(),
+                    "name" to "САЦ-V",
+                    "length_km" to 100,
+                ),
+                "section" to mapOf(
+                    "id" to sectionId.toString(),
+                    "begin_km" to 0,
+                    "end_km" to 10,
+                ),
+                "start_time" to 1704321600L,
+                "end_time" to 1704329400L,
+                "sites" to listOf(
+                    mapOf(
+                        "id" to siteId.toString(),
+                        "timestamp" to 1704322000L,
+                        "position_km" to 1.0,
+                        "location" to null,
+                        "validation_id" to null,
+                        "fields" to listOf(
+                            mapOf(
+                                // Enough `..` segments to pop past photos/{reportId}/{siteId}
+                                // AND the photos root itself; `startsWith(root)` must reject it.
+                                "spec_id" to "../../../../escape/attempt",
+                                "name" to "Фотография точки",
+                                "type" to "photo",
+                                "value" to photoBase64,
+                                "unit" to null,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        mockMvc.post("/api/reports") {
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(payload)
+        }.andExpect {
+            status { isBadRequest() }
+        }
+    }
+
+    @Test
     fun `auto-inserts unknown route and section from the payload`() {
         val reportId = UUID.randomUUID()
         val routeId = UUID.randomUUID()

@@ -2,9 +2,11 @@ package space.diomentia.ehzbackend.reports.photos
 
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
+import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
 import java.util.Base64
 import java.util.UUID
@@ -46,14 +48,30 @@ class PhotoStorage(
 
         val relative = "photos/$reportId/$siteId/$specId.webp"
         val target = dataDirPath.resolve(relative)
-        Files.createDirectories(target.parent)
+
+        // specId is free-form client input; ensure the resolved path stays
+        // under the photos root so `../` segments can't escape.
+        val resolved = target.normalize().toAbsolutePath()
+        val root = photosRoot.normalize().toAbsolutePath()
+        require(resolved.startsWith(root)) { "path escapes photos root: $resolved" }
+
+        Files.createDirectories(resolved.parent)
+
+        // Write to a sibling .tmp then atomically rename so a crash mid-write
+        // can't leave a torn half-file at the final path.
+        val tmp = resolved.resolveSibling("${resolved.fileName}.tmp")
         Files.write(
-            target,
+            tmp,
             bytes,
             StandardOpenOption.CREATE,
             StandardOpenOption.TRUNCATE_EXISTING,
             StandardOpenOption.WRITE,
         )
+        try {
+            Files.move(tmp, resolved, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        } catch (_: AtomicMoveNotSupportedException) {
+            Files.move(tmp, resolved, StandardCopyOption.REPLACE_EXISTING)
+        }
         return relative
     }
 
@@ -61,7 +79,12 @@ class PhotoStorage(
      * Resolve a previously-persisted relative path back to an absolute [Path].
      * Used by the future GET /api/photos endpoint (Step 4).
      */
-    fun resolve(relativePath: String): Path = dataDirPath.resolve(relativePath).normalize()
+    fun resolve(relativePath: String): Path {
+        val resolved = dataDirPath.resolve(relativePath).normalize().toAbsolutePath()
+        val root = photosRoot.normalize().toAbsolutePath()
+        require(resolved.startsWith(root)) { "path escapes photos root: $resolved" }
+        return resolved
+    }
 
     /** Exposed for diagnostics; not intended as API surface. */
     fun photosRoot(): Path = photosRoot

@@ -11,7 +11,7 @@ import java.util.UUID
  *
  * IDs are `java.util.UUID` — non-UUID strings are rejected with 400 by Jackson.
  * `Instant` fields accept either epoch-seconds numbers (current Android shape)
- * or ISO-8601 strings (future), enforced via `spring.jackson.deserialization.
+ * or ISO-8601 strings (future), enforced via `spring.jackson.datatype.datetime.
  * read-date-timestamps-as-nanoseconds=false` in application.yml.
  *
  * `@JsonIgnoreProperties(ignoreUnknown = true)` is set on each DTO so unknown
