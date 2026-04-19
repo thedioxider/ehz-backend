@@ -41,6 +41,10 @@ springBoot {
     mainClass.set("space.diomentia.ehzbackend.EhzBackendApplicationKt")
 }
 
+// Ship only the Spring Boot uber-jar (`bootJar`). Without this, the `jar` task
+// also produces a `-plain.jar` that collides with the Dockerfile's COPY glob.
+tasks.named<Jar>("jar") { enabled = false }
+
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     compilerOptions {
         // -Xjsr305=strict: treat JSR-305 @Nonnull/@CheckForNull from Spring as strict Kotlin nullability.
