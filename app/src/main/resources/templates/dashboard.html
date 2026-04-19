@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>ehz-backend dashboard</title>
+    <style>
+        body { font-family: ui-sans-serif, system-ui, sans-serif; max-width: 720px; margin: 2em auto; padding: 0 1em; color: #222; }
+        h1 { margin-bottom: 0.25em; }
+        h2 { margin-top: 2em; border-bottom: 1px solid #ccc; padding-bottom: 0.25em; }
+        table { border-collapse: collapse; width: 100%; }
+        td { padding: 0.25em 0.5em; vertical-align: top; }
+        td.k { color: #666; width: 11em; }
+        .ok { color: #0a7d1f; font-weight: 600; }
+        .bad { color: #b00020; font-weight: 600; }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+        .key { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; background: #f4f4f4; padding: 0.5em; border: 1px solid #ddd; display: block; }
+    </style>
+</head>
+<body>
+<h1>ehz-backend dashboard</h1>
+<p class="mono">local / management — served only on 127.0.0.1</p>
+
+<h2>Server</h2>
+<table>
+    <tr><td class="k">Server IP</td><td class="mono" th:text="${serverIp}">127.0.0.1</td></tr>
+    <tr><td class="k">API port</td><td class="mono" th:text="${apiPort}">19081</td></tr>
+    <tr><td class="k">Build</td><td class="mono" th:text="${build}">dev</td></tr>
+    <tr><td class="k">Contract</td><td class="mono" th:text="${contract}">1</td></tr>
+</table>
+
+<h2>Health</h2>
+<table>
+    <tr>
+        <td class="k">Database</td>
+        <td th:classappend="${health.dbUp} ? 'ok' : 'bad'"
+            th:text="${health.dbUp} ? 'reachable' : 'DOWN'">reachable</td>
+    </tr>
+    <tr>
+        <td class="k">Photos dir</td>
+        <td th:classappend="${health.photosDirWritable} ? 'ok' : 'bad'"
+            th:text="${health.photosDirWritable} ? 'writable' : 'NOT WRITABLE'">writable</td>
+    </tr>
+    <tr>
+        <td class="k">Free disk</td>
+        <td class="mono" th:text="${health.freeDiskBytes} + ' bytes'">0 bytes</td>
+    </tr>
+</table>
+
+<h2>Reports</h2>
+<table>
+    <tr><td class="k">Total</td><td class="mono" th:text="${reportCounts.total}">0</td></tr>
+    <tr><td class="k">Last 24h</td><td class="mono" th:text="${reportCounts.last24h}">0</td></tr>
+    <tr><td class="k">Last 7d</td><td class="mono" th:text="${reportCounts.last7d}">0</td></tr>
+    <tr>
+        <td class="k">Most recent</td>
+        <td class="mono"
+            th:text="${reportCounts.mostRecent != null} ? ${reportCounts.mostRecent} : '(none)'">(none)</td>
+    </tr>
+</table>
+
+<h2>API key</h2>
+<p>Copy this value into the companion app during pairing.</p>
+<code class="key" th:text="${apiKey}" onclick="if (window.getSelection &amp;&amp; document.createRange) { var r = document.createRange(); r.selectNodeContents(this); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); }">…</code>
+</body>
+</html>

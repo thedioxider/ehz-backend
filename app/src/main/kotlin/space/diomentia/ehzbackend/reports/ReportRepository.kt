@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
+import java.time.Instant
 import java.util.UUID
 
 interface ReportRepository : JpaRepository<Report, UUID>, JpaSpecificationExecutor<Report> {
@@ -25,4 +26,17 @@ interface ReportRepository : JpaRepository<Report, UUID>, JpaSpecificationExecut
         """,
     )
     fun findDetailById(@Param("id") id: UUID): Report?
+
+    /**
+     * Dashboard: how many reports have a server-stamped `received_at` strictly
+     * after the given instant. Derived-name method — Spring Data generates the
+     * `where received_at > ?` query.
+     */
+    fun countByReceivedAtAfter(since: Instant): Long
+
+    /**
+     * Dashboard: the single most-recent row by `received_at`, or null on an
+     * empty table. Derived-name method.
+     */
+    fun findTopByOrderByReceivedAtDesc(): Report?
 }

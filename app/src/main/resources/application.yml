@@ -59,3 +59,7 @@ ehz:
   config-dir: ${EHZ_CONFIG_DIR:${ehz.data-dir}/config}
   # LAN ingest listener (app-facing). Added programmatically via WebServerFactoryCustomizer.
   lan-ingest-port: ${EHZ_LAN_INGEST_PORT:8081}
+  # Host-facing port the Android app actually connects to. Compose maps this to
+  # the container's `lan-ingest-port` (8081 inside). Surfaced on the dashboard
+  # so the operator can read off the right number when onboarding a device.
+  public-api-port: ${EHZ_PUBLIC_API_PORT:19081}
