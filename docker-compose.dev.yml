@@ -1,0 +1,16 @@
+# Contributor overlay: builds the app and sidecar images from source.
+# Keeps the `image:` tag from the base file so `docker compose build` also
+# publishes the resulting image under that tag locally.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+
+  discovery-sidecar:
+    build:
+      context: .
+      dockerfile: discovery-sidecar/Dockerfile
