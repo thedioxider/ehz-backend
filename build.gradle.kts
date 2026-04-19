@@ -27,3 +27,5 @@ subprojects {
         useJUnitPlatform()
     }
 }
+
+apply(from = "gradle/release.gradle.kts")
