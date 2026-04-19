@@ -3,10 +3,14 @@ package space.diomentia.ehzbackend
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 import space.diomentia.ehzbackend.catalog.RouteRepository
 import space.diomentia.ehzbackend.catalog.SectionRepository
 import space.diomentia.ehzbackend.devices.DeviceRepository
 import space.diomentia.ehzbackend.reports.ReportRepository
+import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * The mere fact that the Spring context boots with Liquibase applied and
@@ -15,6 +19,17 @@ import space.diomentia.ehzbackend.reports.ReportRepository
  * the repositories wired up.
  */
 class SchemaIntegrationTest : AbstractPostgresIntegrationTest() {
+
+    companion object {
+        @JvmStatic
+        val dataDir: Path = Files.createTempDirectory("ehz-schema-data-")
+
+        @DynamicPropertySource
+        @JvmStatic
+        fun overrideDataDir(registry: DynamicPropertyRegistry) {
+            registry.add("ehz.data-dir") { dataDir.toString() }
+        }
+    }
 
     @Autowired
     lateinit var deviceRepository: DeviceRepository

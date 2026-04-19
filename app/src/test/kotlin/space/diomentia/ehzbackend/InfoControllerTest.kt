@@ -3,8 +3,12 @@ package space.diomentia.ehzbackend
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
+import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * Covers `/api/info`, `/api/ping`, and the cross-cutting `X-Contract-Version`
@@ -15,6 +19,17 @@ import org.springframework.test.web.servlet.get
  */
 @AutoConfigureMockMvc
 class InfoControllerTest : AbstractPostgresIntegrationTest() {
+
+    companion object {
+        @JvmStatic
+        val dataDir: Path = Files.createTempDirectory("ehz-info-data-")
+
+        @DynamicPropertySource
+        @JvmStatic
+        fun overrideDataDir(registry: DynamicPropertyRegistry) {
+            registry.add("ehz.data-dir") { dataDir.toString() }
+        }
+    }
 
     @Autowired
     lateinit var mockMvc: MockMvc

@@ -1,5 +1,6 @@
 package space.diomentia.ehzbackend.reports
 
+import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -7,6 +8,8 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import space.diomentia.ehzbackend.devices.Device
+import space.diomentia.ehzbackend.devices.DeviceTrackingFilter
 import space.diomentia.ehzbackend.reports.dto.ReportDto
 import tools.jackson.core.JacksonException
 import tools.jackson.databind.JsonNode
@@ -30,7 +33,10 @@ class ReportIngestController(
     private val objectMapper: ObjectMapper,
 ) {
     @PostMapping
-    fun ingest(@RequestBody body: JsonNode): ResponseEntity<Map<String, Int>> {
+    fun ingest(
+        @RequestBody body: JsonNode,
+        request: HttpServletRequest,
+    ): ResponseEntity<Map<String, Int>> {
         val nodes: List<JsonNode> = when {
             body.isArray -> body.toList()
             body.isObject -> listOf(body)
@@ -48,7 +54,11 @@ class ReportIngestController(
             }
         }
 
-        reports.forEach { ingestService.ingest(it) }
+        // DeviceTrackingFilter stashes the upserted entity here when a valid
+        // X-Device-Id arrived on the request; null otherwise.
+        val device = request.getAttribute(DeviceTrackingFilter.REQUEST_ATTR) as? Device
+
+        reports.forEach { ingestService.ingest(it, device) }
 
         return ResponseEntity
             .status(HttpStatus.CREATED)

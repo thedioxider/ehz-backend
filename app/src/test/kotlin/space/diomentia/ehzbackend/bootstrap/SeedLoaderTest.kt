@@ -3,9 +3,13 @@ package space.diomentia.ehzbackend.bootstrap
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 import space.diomentia.ehzbackend.AbstractPostgresIntegrationTest
 import space.diomentia.ehzbackend.catalog.RouteRepository
 import space.diomentia.ehzbackend.catalog.SectionRepository
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.UUID
 
 /**
@@ -65,6 +69,17 @@ class SeedLoaderTest : AbstractPostgresIntegrationTest() {
     }
 
     companion object {
+        @JvmStatic
+        val dataDir: Path = Files.createTempDirectory("ehz-seed-data-")
+
+        @DynamicPropertySource
+        @JvmStatic
+        fun overrideDataDir(registry: DynamicPropertyRegistry) {
+            // Pin data-dir so `CredentialsStore` doesn't write a stray
+            // `./data/credentials.txt` into the project tree during tests.
+            registry.add("ehz.data-dir") { dataDir.toString() }
+        }
+
         // Mirrors the UUIDs baked into `seed/initial_areas.yaml`. Keep in sync
         // if the seed file is ever re-keyed.
         private val SEEDED_ROUTE_ID =

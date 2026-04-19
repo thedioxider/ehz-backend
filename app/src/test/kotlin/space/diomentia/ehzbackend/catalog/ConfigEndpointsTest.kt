@@ -32,10 +32,16 @@ class ConfigEndpointsTest : AbstractPostgresIntegrationTest() {
         @JvmStatic
         val configDir: Path = Files.createTempDirectory("ehz-config-test-")
 
+        @JvmStatic
+        val dataDir: Path = Files.createTempDirectory("ehz-config-data-")
+
         @DynamicPropertySource
         @JvmStatic
-        fun overrideConfigDir(registry: DynamicPropertyRegistry) {
+        fun overrideDirs(registry: DynamicPropertyRegistry) {
             registry.add("ehz.config-dir") { configDir.toString() }
+            // Pin data-dir too so `CredentialsStore` doesn't write a stray
+            // `./data/credentials.txt` into the project tree during tests.
+            registry.add("ehz.data-dir") { dataDir.toString() }
         }
     }
 

@@ -16,6 +16,10 @@ import org.testcontainers.postgresql.PostgreSQLContainer
  * container between classes. Spring's test-context cache can then reuse the same URL
  * across every subclass's cached context without pointing at a dead container. JVM
  * shutdown reaps the container (Testcontainers' Ryuk takes care of it).
+ *
+ * Each subclass is expected to override `ehz.data-dir` via its own `@DynamicPropertySource`
+ * so [space.diomentia.ehzbackend.bootstrap.CredentialsStore] doesn't spill a stray
+ * `./data/credentials.txt` into the project tree during CI.
  */
 @SpringBootTest
 abstract class AbstractPostgresIntegrationTest {

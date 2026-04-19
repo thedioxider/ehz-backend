@@ -6,6 +6,7 @@ import space.diomentia.ehzbackend.catalog.Route
 import space.diomentia.ehzbackend.catalog.RouteRepository
 import space.diomentia.ehzbackend.catalog.Section
 import space.diomentia.ehzbackend.catalog.SectionRepository
+import space.diomentia.ehzbackend.devices.Device
 import space.diomentia.ehzbackend.reports.dto.FieldDto
 import space.diomentia.ehzbackend.reports.dto.ReportDto
 import space.diomentia.ehzbackend.reports.dto.SiteDto
@@ -20,7 +21,8 @@ import java.util.UUID
  * - An existing report with the same id is deleted first (FK cascade handles
  *   sites + report_fields) and replaced — this makes the endpoint idempotent
  *   under app retries.
- * - `device_id` stays null here; Step 6 adds the X-Device-Id filter.
+ * - `device_id` is set if the caller resolves one from the `X-Device-Id`
+ *   header (see `DeviceTrackingFilter`), otherwise stays null.
  * - `received_at` is DB-defaulted; entity field is insertable=false.
  *
  * Photo fields are decoded + written to disk before the report row is
@@ -39,7 +41,7 @@ class ReportIngestService(
     private val photoStorage: PhotoStorage,
 ) {
     @Transactional
-    fun ingest(dto: ReportDto) {
+    fun ingest(dto: ReportDto, device: Device? = null) {
         val route = upsertRoute(dto.route.id, dto.route.name, dto.route.lengthKm)
         val section = upsertSection(dto.section.id, route, dto.section.beginKm, dto.section.endKm)
 
@@ -53,7 +55,7 @@ class ReportIngestService(
         val report = reportRepository.save(
             Report(
                 id = dto.id,
-                device = null,
+                device = device,
                 route = route,
                 section = section,
                 inspector = dto.inspector,
