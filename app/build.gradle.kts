@@ -45,6 +45,9 @@ springBoot {
 // also produces a `-plain.jar` that collides with the Dockerfile's COPY glob.
 tasks.named<Jar>("jar") { enabled = false }
 
+// We don't use `bootRun` — development is via `docker compose -f docker-compose.dev.yml up --build`.
+tasks.named("bootRun") { enabled = false }
+
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     compilerOptions {
         // -Xjsr305=strict: treat JSR-305 @Nonnull/@CheckForNull from Spring as strict Kotlin nullability.
