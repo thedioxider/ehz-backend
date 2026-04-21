@@ -15,9 +15,12 @@ import javax.sql.DataSource
 
 /**
  * Wires [DashboardController] onto the actuator's **child management context**
- * (`management.server.port`, bound to 127.0.0.1 by `application.yml`) so the
- * dashboard is reachable **only** from the host loopback — never from the LAN
- * connector (8081) and never from the internal Docker-bridge connector (8082).
+ * (`management.server.port` — 8080 inside the container, published to
+ * `127.0.0.1:19080` on the host by compose) so the dashboard is reachable
+ * **only** from the host loopback — never from the LAN connector (8081) and
+ * never from the internal Docker-bridge connector (8082). The host-side publish
+ * binding does the enforcement; the container-internal listener binds 0.0.0.0
+ * so Docker's port forwarding can reach it.
  *
  * This class is discovered via
  * `META-INF/spring/org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration.imports`.
@@ -53,7 +56,7 @@ class DashboardManagementContextConfiguration {
         dataSource: DataSource,
         reportRepository: ReportRepository,
         credentialsStore: CredentialsStore,
-        @Value("\${ehz.public-api-port:19081}") apiPort: Int,
+        @Value("\${ehz.ingest.published-port:19081}") apiPort: Int,
         @Value("\${ehz.data-dir}") dataDir: String,
         buildProperties: BuildProperties?,
     ): DashboardController = DashboardController(

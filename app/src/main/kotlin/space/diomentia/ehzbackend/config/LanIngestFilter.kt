@@ -24,7 +24,7 @@ import kotlin.text.Charsets.UTF_8
  * Spring Security on the classpath (deliberately — port scoping + a single
  * static API key is the whole v1 auth model).
  *
- * Policy when `request.localPort == ehz.lan-ingest-port`:
+ * Policy when `request.localPort == ehz.ingest.port`:
  *
  * | Verb + Path              | Auth required | Behavior          |
  * |--------------------------|---------------|-------------------|
@@ -48,7 +48,7 @@ import kotlin.text.Charsets.UTF_8
 @Order(Ordered.HIGHEST_PRECEDENCE + 20)
 class LanIngestFilter(
     private val credentials: CredentialsStore,
-    @param:Value("\${ehz.lan-ingest-port}") private val lanPort: Int,
+    @param:Value("\${ehz.ingest.port}") private val lanPort: Int,
 ) : OncePerRequestFilter() {
 
     override fun doFilterInternal(

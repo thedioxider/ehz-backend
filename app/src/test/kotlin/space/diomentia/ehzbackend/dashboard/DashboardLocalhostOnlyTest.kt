@@ -55,15 +55,18 @@ class DashboardLocalhostOnlyTest : AbstractPostgresIntegrationTest() {
         @DynamicPropertySource
         @JvmStatic
         fun overrideProps(registry: DynamicPropertyRegistry) {
-            // Pin the management server address explicitly — it's the default,
-            // but this test's whole point is that binding.
+            // Pin the management server address to 127.0.0.1 — the production
+            // default is 0.0.0.0 (so Docker's port forward can reach it), with
+            // the compose publish binding `127.0.0.1:19080:8080` doing the
+            // host-side restriction. This test exercises the socket-level
+            // binding mechanism directly without relying on compose.
             registry.add("management.server.address") { "127.0.0.1" }
             // Let Boot pick a free management port; the production default
             // (8080) would collide with any local dev server.
             registry.add("management.server.port") { "0" }
             // LAN ingest connector wants a free port too so we don't collide
             // with whatever's on 8081 on the developer's box.
-            registry.add("ehz.lan-ingest-port") { "0" }
+            registry.add("ehz.ingest.port") { "0" }
             registry.add("ehz.data-dir") { tempDir.toString() }
         }
     }

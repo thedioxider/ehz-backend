@@ -2,9 +2,9 @@ spring:
   application:
     name: ehz-backend
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ehz}
-    username: ${SPRING_DATASOURCE_USERNAME:ehz}
-    password: ${SPRING_DATASOURCE_PASSWORD:ehz}
+    url: ${DB_URL:jdbc:postgresql://db:5432/ehz}
+    username: ${DB_USER:ehz}
+    password: ${DB_PASSWORD:ehz}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -40,9 +40,12 @@ server:
 
 management:
   server:
-    # Dashboard + Actuator — host-mapped to 127.0.0.1 only, never LAN.
+    # Dashboard + Actuator. The host-side publish binding `127.0.0.1:19080:8080`
+    # in docker-compose.yml is what keeps this loopback-only on the operator's
+    # machine; the container-internal listener has to bind 0.0.0.0 so Docker's
+    # port forwarding can reach it.
     port: 8080
-    address: 127.0.0.1
+    address: 0.0.0.0
   endpoints:
     web:
       exposure:
@@ -52,14 +55,15 @@ management:
       show-details: always
 
 ehz:
-  data-dir: ${EHZ_DATA_DIR:./data}
+  data-dir: /data
   # Directory that holds operator-editable config overrides (e.g. report-config.yaml).
-  # Falls back to `${ehz.data-dir}/config` when no env var is set — Spring resolves the
-  # nested ${} placeholder natively.
-  config-dir: ${EHZ_CONFIG_DIR:${ehz.data-dir}/config}
-  # LAN ingest listener (app-facing). Added programmatically via WebServerFactoryCustomizer.
-  lan-ingest-port: ${EHZ_LAN_INGEST_PORT:8081}
-  # Host-facing port the Android app actually connects to. Compose maps this to
-  # the container's `lan-ingest-port` (8081 inside). Surfaced on the dashboard
-  # so the operator can read off the right number when onboarding a device.
-  public-api-port: ${EHZ_PUBLIC_API_PORT:8081}
+  # Derives from `data-dir`; Spring resolves the nested ${} placeholder natively.
+  config-dir: ${ehz.data-dir}/config
+  ingest:
+    # Container-internal listener port. Added programmatically via WebServerFactoryCustomizer.
+    port: 8081
+    # Host-facing published port the Android app actually connects to. Compose maps
+    # this to the container's `ingest.port` (8081 inside) and sets EHZ_API_PORT to
+    # the host-side value. Surfaced on the dashboard so the operator can read off
+    # the right number when onboarding a device.
+    published-port: ${EHZ_API_PORT:8081}

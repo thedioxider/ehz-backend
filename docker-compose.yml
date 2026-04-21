@@ -1,17 +1,16 @@
-# ehz-backend — operator-facing compose file.
-#
-# Ships image-only. Contributors wanting to build from source use the
-# docker-compose.dev.yml overlay:
-#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d
-
 services:
+  # The service key `db` is the hostname the app resolves via Docker's DNS.
+  # It's referenced from `app/src/main/resources/application.yml`
+  # (`spring.datasource.url`) — rename both together.
   db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: ehz
       POSTGRES_USER: ehz
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ehz}
+      # The Postgres image requires its superuser password via POSTGRES_PASSWORD.
+      # Both services source from the same operator-facing `DB_PASSWORD` in `.env`.
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ehz}
     volumes:
       - ./data/pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -27,18 +26,8 @@ services:
       db:
         condition: service_healthy
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ehz
-      SPRING_DATASOURCE_USERNAME: ehz
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-ehz}
-      EHZ_DATA_DIR: /data
-      EHZ_LAN_INGEST_PORT: "8081"
-      EHZ_PUBLIC_API_PORT: "19081"
-      # Inside the container, the management (dashboard) listener has to bind
-      # 0.0.0.0 so Docker can forward the published host port to it. The host
-      # binding `127.0.0.1:19080` below is what actually keeps the dashboard
-      # off the LAN — the container-internal listener is on the Docker bridge,
-      # which isn't routed from outside.
-      MANAGEMENT_SERVER_ADDRESS: 0.0.0.0
+      DB_PASSWORD: ${DB_PASSWORD:-ehz}
+      EHZ_API_PORT: "19081"
     volumes:
       - ./data:/data
     ports:

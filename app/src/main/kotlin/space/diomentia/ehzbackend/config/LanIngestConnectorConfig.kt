@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration
  *
  * The primary connector is the internal API on `server.port` (8082 by default),
  * reachable only from the Docker bridge network. This extra connector binds on
- * `0.0.0.0:{ehz.lan-ingest-port}` and is where the Android companion app
+ * `0.0.0.0:{ehz.ingest.port}` and is where the Android companion app
  * delivers reports from the LAN. Both connectors feed the same servlet
  * container, so the same controllers handle the requests — port-scoped
  * filtering in [LanIngestFilter] decides what's actually reachable from where.
@@ -28,7 +28,7 @@ class LanIngestConnectorConfig {
 
     @Bean
     fun lanIngestConnectorCustomizer(
-        @Value("\${ehz.lan-ingest-port}") port: Int,
+        @Value("\${ehz.ingest.port}") port: Int,
     ): WebServerFactoryCustomizer<TomcatServletWebServerFactory> =
         WebServerFactoryCustomizer { factory ->
             factory.addAdditionalConnectors(buildConnector(port))

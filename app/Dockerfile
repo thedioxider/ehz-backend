@@ -46,8 +46,11 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 WORKDIR /app
 
-# 8080 = management/dashboard (bound 127.0.0.1 inside the container),
-# 8081 = LAN ingest, 8082 = internal API (Docker-network-only).
+# 8080 = management/dashboard, 8081 = LAN ingest, 8082 = internal API.
+# Host-side exposure is decided by compose (`ports:` publishes 8080+8081 only;
+# 8082 stays Docker-network-only). The management listener binds 0.0.0.0 inside
+# the container so Docker's loopback-only publish `127.0.0.1:19080:8080` can
+# reach it; that host-side binding is what keeps the dashboard off the LAN.
 EXPOSE 8080 8081 8082
 
 # Healthcheck hits the management port on loopback inside the container — that

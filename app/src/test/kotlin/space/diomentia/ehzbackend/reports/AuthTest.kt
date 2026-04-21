@@ -54,7 +54,7 @@ class AuthTest : AbstractPostgresIntegrationTest() {
         @JvmStatic
         fun overrideProps(registry: DynamicPropertyRegistry) {
             registry.add("server.port") { internalPort }
-            registry.add("ehz.lan-ingest-port") { lanPort }
+            registry.add("ehz.ingest.port") { lanPort }
             registry.add("ehz.data-dir") { tempDir.toString() }
 
             // Seed the credentials file before the bean initialises so the
