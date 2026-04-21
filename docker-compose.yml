@@ -52,6 +52,12 @@ services:
       EHZ_ANNOUNCE_PORT: "19081"
       EHZ_ANNOUNCE_IP: ${EHZ_ANNOUNCE_IP:-auto}
       EHZ_CONTRACT_VERSION: "1"
+    volumes:
+      # Discovery has host-network visibility and resolves the real LAN IP;
+      # the app is on the Docker bridge and cannot see host NICs. Discovery
+      # writes the resolved IP to /state/lan-ip, the app reads it at
+      # /data/discovery/lan-ip, and the dashboard renders it for onboarding.
+      - ./data/discovery:/state
 
   # ------------------------------------------------------------------
   # Placeholder: operator web frontend (not yet implemented).

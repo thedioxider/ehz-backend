@@ -60,7 +60,7 @@ class DashboardController(
         val freeDiskBytes = probeFreeBytes(dataDirPath)
         val mostRecent = reportRepository.findTopByOrderByReceivedAtDesc()?.receivedAt
 
-        model.addAttribute("serverIp", firstNonLoopbackIpv4() ?: "unknown")
+        model.addAttribute("serverIp", resolveServerIp())
         model.addAttribute("apiPort", apiPort)
         model.addAttribute("build", buildProperties?.version ?: "dev")
         model.addAttribute("contract", ApiContract.VERSION)
@@ -137,6 +137,27 @@ class DashboardController(
      */
     private fun formatInstant(instant: Instant?): String =
         if (instant == null) "—" else INSTANT_FORMATTER.format(instant)
+
+    /**
+     * Dashboard-facing LAN IP. The `discovery` service runs on the host network
+     * and can see real NICs, so it writes the resolved announce IP to
+     * `{data-dir}/discovery/lan-ip` on startup. We prefer that over an in-app
+     * probe — this container is on the Docker bridge, so [firstNonLoopbackIpv4]
+     * from here would return the bridge address (e.g. `172.19.0.x`) rather than
+     * the host's physical LAN address.
+     *
+     * Falls back to the in-container probe if the file is missing (local dev
+     * without the discovery container), and to `"unknown"` if even that fails.
+     */
+    private fun resolveServerIp(): String =
+        readDiscoveryLanIp() ?: firstNonLoopbackIpv4() ?: "unknown"
+
+    private fun readDiscoveryLanIp(): String? = try {
+        val path = Path.of(dataDir).resolve("discovery").resolve("lan-ip")
+        if (Files.exists(path)) Files.readString(path).trim().ifBlank { null } else null
+    } catch (_: Exception) {
+        null
+    }
 
     /**
      * First non-loopback, non-link-local IPv4 on any active interface. Returns

@@ -28,12 +28,16 @@ RUN --mount=type=cache,target=/root/.gradle \
 # ---------- runtime stage ----------
 FROM eclipse-temurin:21-jre-alpine
 
-RUN adduser -D -H -u 1000 ehz && \
-    mkdir -p /app
+# su-exec lets the entrypoint drop from root to the `ehz` user after fixing
+# bind-mount ownership on /state (where it writes lan-ip for the app dashboard).
+RUN apk add --no-cache su-exec && \
+    adduser -D -H -u 1000 ehz && \
+    mkdir -p /app /state
 
 COPY --from=builder /src/discovery/build/libs/*.jar /app/discovery.jar
+COPY discovery/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-USER ehz
 WORKDIR /app
 
 # Documentary only: this service runs with network_mode: host in compose, which
@@ -43,4 +47,5 @@ EXPOSE 5353/udp 5370/udp
 # No HEALTHCHECK — the discovery service doesn't expose an HTTP endpoint.
 # Operator observes liveness via `docker ps` / logs.
 
-ENTRYPOINT ["java","-jar","/app/discovery.jar"]
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["java","-jar","/app/discovery.jar"]
