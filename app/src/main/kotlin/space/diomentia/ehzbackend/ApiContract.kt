@@ -10,7 +10,7 @@ package space.diomentia.ehzbackend
  * this number.
  *
  * Surfaced in three places so a client can reconcile without a round-trip:
- *   - the discovery sidecar advertises it,
+ *   - the discovery service advertises it,
  *   - `GET /api/info` includes it in the JSON body,
  *   - every API response carries [HEADER_NAME] via the interceptor.
  */

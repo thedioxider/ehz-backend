@@ -4,4 +4,4 @@ plugins {
 
 rootProject.name = "ehz-backend"
 
-include(":app", ":discovery-sidecar")
+include(":app", ":discovery")

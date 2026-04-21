@@ -38,14 +38,14 @@ services:
       # Port 8082 (internal API) is DELIBERATELY NOT PUBLISHED. Frontend and
       # other sibling services reach it over the compose bridge network.
 
-  discovery-sidecar:
-    image: diomentia/ehz-backend-sidecar:${EHZ_VERSION:-latest}
+  discovery:
+    image: diomentia/ehz-backend-discovery:${EHZ_VERSION:-latest}
     restart: unless-stopped
     depends_on:
       - app
     # Host networking is required: the UDP discovery protocol uses fixed
     # ports (5353/udp mDNS, 5370/udp broadcast responder) that the Android
-    # client can't discover through Docker's NAT. The sidecar announces the
+    # client can't discover through Docker's NAT. This service announces the
     # app's LAN ingest port (published by the `app` service above).
     network_mode: host
     environment:

@@ -2,10 +2,10 @@
 //
 // Invoked as: ./gradlew release -Pehz.version=1.2.3
 //
-// Builds the two Docker images (app, discovery-sidecar), optionally pushes
-// them to Docker Hub (skipped when DOCKERHUB_USERNAME/DOCKERHUB_TOKEN are
-// absent), and packages an air-gap ZIP containing image tarballs, the
-// operator compose file, and SHA256SUMS.
+// Builds the two Docker images (app, discovery), optionally pushes them to
+// Docker Hub (skipped when DOCKERHUB_USERNAME/DOCKERHUB_TOKEN are absent),
+// and packages an air-gap ZIP containing image tarballs, the operator compose
+// file, and SHA256SUMS.
 //
 // `publishGithubRelease` is a sibling task, not wired into `release`.
 
@@ -16,12 +16,12 @@ val imagesDir = rootProject.layout.buildDirectory.dir("release/images")
 val stagingDir = rootProject.layout.buildDirectory.dir("release/stage")
 
 val appImageRepo = "diomentia/ehz-backend-app"
-val sidecarImageRepo = "diomentia/ehz-backend-sidecar"
+val discoveryImageRepo = "diomentia/ehz-backend-discovery"
 val appImageTag = "$appImageRepo:$releaseVersion"
-val sidecarImageTag = "$sidecarImageRepo:$releaseVersion"
+val discoveryImageTag = "$discoveryImageRepo:$releaseVersion"
 
 val appBootJar = tasks.getByPath(":app:bootJar")
-val sidecarShadowJar = tasks.getByPath(":discovery-sidecar:shadowJar")
+val discoveryShadowJar = tasks.getByPath(":discovery:shadowJar")
 
 // ---- build images -----------------------------------------------------------
 
@@ -51,34 +51,34 @@ val buildAppImage by tasks.registering(Exec::class) {
     }
 }
 
-val buildSidecarImage by tasks.registering(Exec::class) {
+val buildDiscoveryImage by tasks.registering(Exec::class) {
     group = "release"
-    description = "Build the discovery-sidecar Docker image and tag it with the release version + latest."
-    dependsOn(sidecarShadowJar)
-    inputs.files(sidecarShadowJar.outputs.files)
-    inputs.file(repoRoot.file("discovery-sidecar/Dockerfile"))
-    val marker = releaseDir.map { it.file("markers/sidecar-image-$releaseVersion.stamp") }
+    description = "Build the discovery Docker image and tag it with the release version + latest."
+    dependsOn(discoveryShadowJar)
+    inputs.files(discoveryShadowJar.outputs.files)
+    inputs.file(repoRoot.file("discovery/Dockerfile"))
+    val marker = releaseDir.map { it.file("markers/discovery-image-$releaseVersion.stamp") }
     outputs.file(marker)
     workingDir = repoRoot.asFile
     commandLine(
         "docker", "build",
-        "-f", "discovery-sidecar/Dockerfile",
-        "-t", sidecarImageTag,
-        "-t", "$sidecarImageRepo:latest",
+        "-f", "discovery/Dockerfile",
+        "-t", discoveryImageTag,
+        "-t", "$discoveryImageRepo:latest",
         ".",
     )
     doFirst {
         marker.get().asFile.parentFile.mkdirs()
     }
     doLast {
-        marker.get().asFile.writeText("$sidecarImageTag\n")
+        marker.get().asFile.writeText("$discoveryImageTag\n")
     }
 }
 
 val buildImages by tasks.registering {
     group = "release"
     description = "Build both Docker images."
-    dependsOn(buildAppImage, buildSidecarImage)
+    dependsOn(buildAppImage, buildDiscoveryImage)
 }
 
 // ---- push images ------------------------------------------------------------
@@ -135,15 +135,15 @@ val pushAppImage by tasks.registering(Exec::class) {
     }
 }
 
-val pushSidecarImage by tasks.registering(Exec::class) {
+val pushDiscoveryImage by tasks.registering(Exec::class) {
     group = "release"
-    description = "docker push the sidecar image (version + latest tags). Skipped if DOCKERHUB_* unset."
-    dependsOn(buildSidecarImage)
+    description = "docker push the discovery image (version + latest tags). Skipped if DOCKERHUB_* unset."
+    dependsOn(buildDiscoveryImage)
     onlyIf { dockerhubCredsPresent() }
     workingDir = repoRoot.asFile
     commandLine(
         "bash", "-c",
-        """docker push "$sidecarImageTag" && docker push "$sidecarImageRepo:latest"""",
+        """docker push "$discoveryImageTag" && docker push "$discoveryImageRepo:latest"""",
     )
     doFirst {
         val u = dockerhubUsername.get()
@@ -158,13 +158,13 @@ val pushSidecarImage by tasks.registering(Exec::class) {
 val pushImages by tasks.registering {
     group = "release"
     description = "Push both Docker images. Skipped if DOCKERHUB_* unset."
-    dependsOn(pushAppImage, pushSidecarImage)
+    dependsOn(pushAppImage, pushDiscoveryImage)
 }
 
 // ---- save images to tarballs ------------------------------------------------
 
 val appTarball = imagesDir.map { it.file("ehz-backend-app-$releaseVersion.tar.gz") }
-val sidecarTarball = imagesDir.map { it.file("ehz-backend-sidecar-$releaseVersion.tar.gz") }
+val discoveryTarball = imagesDir.map { it.file("ehz-backend-discovery-$releaseVersion.tar.gz") }
 
 val saveAppImage by tasks.registering(Exec::class) {
     group = "release"
@@ -183,20 +183,20 @@ val saveAppImage by tasks.registering(Exec::class) {
     }
 }
 
-val saveSidecarImage by tasks.registering(Exec::class) {
+val saveDiscoveryImage by tasks.registering(Exec::class) {
     group = "release"
-    description = "Save the sidecar image as a gzipped tar under build/release/images/."
-    dependsOn(buildSidecarImage)
-    inputs.files(buildSidecarImage.get().outputs.files)
-    outputs.file(sidecarTarball)
+    description = "Save the discovery image as a gzipped tar under build/release/images/."
+    dependsOn(buildDiscoveryImage)
+    inputs.files(buildDiscoveryImage.get().outputs.files)
+    outputs.file(discoveryTarball)
     workingDir = repoRoot.asFile
-    val out = sidecarTarball.get().asFile.absolutePath
+    val out = discoveryTarball.get().asFile.absolutePath
     commandLine(
         "bash", "-c",
-        """docker save "$sidecarImageTag" | gzip > "$out"""",
+        """docker save "$discoveryImageTag" | gzip > "$out"""",
     )
     doFirst {
-        sidecarTarball.get().asFile.parentFile.mkdirs()
+        discoveryTarball.get().asFile.parentFile.mkdirs()
     }
 }
 
@@ -209,9 +209,9 @@ val saveSidecarImage by tasks.registering(Exec::class) {
 val stageRelease by tasks.registering(Copy::class) {
     group = "release"
     description = "Assemble the release staging directory that the ZIP ships."
-    dependsOn(saveAppImage, saveSidecarImage)
+    dependsOn(saveAppImage, saveDiscoveryImage)
     from(appTarball) { into("images") }
-    from(sidecarTarball) { into("images") }
+    from(discoveryTarball) { into("images") }
     from(repoRoot.file("docker-compose.yml"))
     from(repoRoot.file(".env.example"))
     from(repoRoot.file("README.md"))

@@ -17,14 +17,14 @@ COPY gradlew ./
 COPY gradle gradle
 COPY settings.gradle.kts build.gradle.kts gradle.properties ./
 COPY app/build.gradle.kts app/build.gradle.kts
-COPY discovery-sidecar/build.gradle.kts discovery-sidecar/build.gradle.kts
+COPY discovery/build.gradle.kts discovery/build.gradle.kts
 
 RUN chmod +x ./gradlew
 
 # Source. Copying both modules keeps the settings include(...) happy even
 # though we only build :app:bootJar here.
 COPY app/src app/src
-COPY discovery-sidecar/src discovery-sidecar/src
+COPY discovery/src discovery/src
 
 # BuildKit cache mount on ~/.gradle speeds up incremental builds substantially.
 # Tests are run in CI, not here.

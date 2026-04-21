@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController
  *
  * `/api/ping` is a liveness heartbeat for the Android app's first-boot QR-pair
  * flow — constant 200 JSON, no auth, no DB access. Cheap enough for the
- * discovery sidecar to exercise on a schedule.
+ * discovery service to exercise on a schedule.
  *
  * `/api/info` surfaces the two-part version (build semver for humans, contract
  * integer for machines) plus the commit SHA so a client talking to an unknown

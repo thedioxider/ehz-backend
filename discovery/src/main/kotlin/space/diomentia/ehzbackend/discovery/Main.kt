@@ -22,7 +22,7 @@ fun main() {
     }
 
     log.info(
-        "ehz-discovery-sidecar starting: ip={} port={} contractVersion={}",
+        "ehz-discovery starting: ip={} port={} contractVersion={}",
         announceIp.hostAddress, announcePort, contractVersion,
     )
 
@@ -33,7 +33,7 @@ fun main() {
     udp.start()
 
     Runtime.getRuntime().addShutdownHook(Thread({
-        log.info("ehz-discovery-sidecar shutting down")
+        log.info("ehz-discovery shutting down")
         udp.close()
         mdns.close()
     }, "ehz-discovery-shutdown"))

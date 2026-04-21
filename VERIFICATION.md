@@ -24,7 +24,7 @@ composed stack actually behaves as designed in production.
   8081 (LAN ingest), 8082 (internal). Compose publishes 8080 → `127.0.0.1:19080`
   (loopback-only) and 8081 → `0.0.0.0:19081` (LAN). 8082 is deliberately **not**
   published.
-- `discovery-sidecar` — JmDNS announcer + UDP `5370` responder on
+- `discovery` — JmDNS announcer + UDP `5370` responder on
   `network_mode: host`.
 
 All persistent state lives under `./data/` (`pgdata/`, `photos/`,
@@ -35,7 +35,7 @@ All persistent state lives under `./data/` (`pgdata/`, `photos/`,
 ### 1. Unit + integration tests
 
 ```sh
-./gradlew :app:test :discovery-sidecar:test --no-daemon
+./gradlew :app:test :discovery:test --no-daemon
 ```
 
 Expected: `BUILD SUCCESSFUL`, 42 total tests, 0 failures.
@@ -44,7 +44,7 @@ Aggregate over the JUnit XMLs if you want a one-shot count:
 
 ```sh
 grep -hoE 'tests="[0-9]+"' app/build/test-results/test/*.xml \
-  discovery-sidecar/build/test-results/test/*.xml \
+  discovery/build/test-results/test/*.xml \
   | awk -F'"' '{sum+=$2} END {print sum}'
 # => 42
 ```
@@ -64,7 +64,7 @@ Expected: three services running, `db` and `app` both `(healthy)`.
 NAME                              SERVICE             STATUS
 ehz-backend-app-1                 app                 Up X seconds (healthy)
 ehz-backend-db-1                  db                  Up X seconds (healthy)
-ehz-backend-discovery-sidecar-1   discovery-sidecar   Up X seconds
+ehz-backend-discovery-1           discovery           Up X seconds
 ```
 
 Give the `app` healthcheck up to 60 s on first boot (JVM warmup + Liquibase
@@ -269,7 +269,7 @@ unzip ehz-backend-0.0.0-dry.zip -d ehz-backend
 cd ehz-backend
 sha256sum -c SHA256SUMS
 docker load < images/ehz-backend-app-0.0.0-dry.tar.gz
-docker load < images/ehz-backend-sidecar-0.0.0-dry.tar.gz
+docker load < images/ehz-backend-discovery-0.0.0-dry.tar.gz
 EHZ_VERSION=0.0.0-dry docker compose up -d
 ```
 
@@ -294,7 +294,7 @@ behaves identically to the Docker Hub path.
 - **LAN ingest 401 with a key that matches `credentials.txt`.** Most likely a
   CR/LF artefact in the shell — make sure you strip whitespace:
   `API_KEY=$(grep EHZ_API_KEY ./data/credentials.txt | cut -d= -f2 | tr -d '\r\n ')`.
-- **Discovery sidecar logs "multiple LAN IPv4 candidates found".** The sidecar
+- **Discovery service logs "multiple LAN IPv4 candidates found".** The service
   picked the first non-loopback IPv4 alphabetically. If it chose the wrong NIC
   (e.g. a Docker bridge address instead of your WLAN address), set
   `EHZ_ANNOUNCE_IP=<the-right-ip>` in `.env` and `docker compose up -d`.

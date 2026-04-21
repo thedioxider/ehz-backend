@@ -2,7 +2,7 @@
 
 Field-deployed diagnostic report ingestion service. Runs as three containers
 behind a single `docker compose up -d`: Postgres, the Spring Boot app, and a
-discovery sidecar that announces the service on the LAN.
+discovery service that announces the backend on the LAN.
 
 ## Install from Docker Hub
 
@@ -29,7 +29,7 @@ unzip ehz-backend-<VER>.zip
 cd ehz-backend-<VER>
 sha256sum -c SHA256SUMS
 docker load < images/ehz-backend-app-<VER>.tar.gz
-docker load < images/ehz-backend-sidecar-<VER>.tar.gz
+docker load < images/ehz-backend-discovery-<VER>.tar.gz
 docker compose up -d
 ```
 
@@ -52,7 +52,7 @@ Builds use BuildKit cache mounts so repeated builds reuse the Gradle cache.
 - `127.0.0.1:19080` — operator dashboard (localhost only, never exposed to LAN)
 - `<lan-ip>:19081` — app ingest, API-key protected (this is what the Android app talks to)
 - `8082` inside Docker only — internal API for sibling services (future frontend)
-- UDP 5353 (mDNS) + UDP 5370 (broadcast discovery) — on the host network via the sidecar
+- UDP 5353 (mDNS) + UDP 5370 (broadcast discovery) — on the host network via the discovery service
 
 ## Data
 

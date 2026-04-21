@@ -13,8 +13,8 @@ import java.net.SocketException
  * a [DiscoveryReply] unicast to the sender.
  *
  * [listenPort] is a protocol constant — the client never learns it from
- * anywhere, so it cannot be remapped. That's why the sidecar has to be on
- * the host network (UDP broadcast doesn't traverse Docker's bridge).
+ * anywhere, so it cannot be remapped. That's why the discovery service has
+ * to run on the host network (UDP broadcast doesn't traverse Docker's bridge).
  *
  * Bind failures are logged at WARN and swallowed; mDNS + manual entry still
  * work. `listenPort = 0` picks an ephemeral port (used by tests).

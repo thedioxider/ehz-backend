@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: app/Dockerfile
 
-  discovery-sidecar:
+  discovery:
     build:
       context: .
-      dockerfile: discovery-sidecar/Dockerfile
+      dockerfile: discovery/Dockerfile
