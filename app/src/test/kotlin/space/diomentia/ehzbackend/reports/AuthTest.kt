@@ -19,29 +19,18 @@ import java.util.UUID
 
 /**
  * Covers the port-scoped auth model: the LAN connector only admits the
- * allowlisted verb+path combos, and only with a valid bearer on `POST /api/reports`;
+ * allowlisted verb+path combos, and only with a valid bearer on `PUT /api/reports/{id}`;
  * the internal connector ignores the filter entirely.
  *
  * Uses [SpringBootTest.WebEnvironment.DEFINED_PORT] (not RANDOM_PORT) because
  * we need the LAN listener on a known, stable port we pre-reserve via
  * [ServerSocket]. MockMvc can't drive this — the whole point is to exercise
  * the real Tomcat connectors.
- *
- * The test API key is injected via [DynamicPropertySource] as a System
- * property; the `CredentialsStore.envOverride()` seam is overridden in its
- * unit tests, but here we simulate the env-override branch via the test
- * harness by writing the credentials file ourselves — simpler and doesn't
- * require a bean replacement.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 class AuthTest : AbstractPostgresIntegrationTest() {
 
     companion object {
-        // Pre-reserve two free ports at class-init time. Closing the sockets
-        // leaves a brief window where the kernel could hand them to someone
-        // else, but the JVM-lifetime Postgres container + the fact that these
-        // tests don't run in parallel within the same module makes the race
-        // safe in practice.
         @JvmStatic val internalPort: Int = reservePort()
         @JvmStatic val lanPort: Int = reservePort()
 
@@ -57,8 +46,6 @@ class AuthTest : AbstractPostgresIntegrationTest() {
             registry.add("ehz.ingest.port") { lanPort }
             registry.add("ehz.data-dir") { tempDir.toString() }
 
-            // Seed the credentials file before the bean initialises so the
-            // store reads our known key instead of generating a random one.
             val credsFile = tempDir.resolve("credentials.txt")
             Files.writeString(credsFile, "EHZ_API_KEY=$TEST_API_KEY\n")
         }
@@ -76,14 +63,12 @@ class AuthTest : AbstractPostgresIntegrationTest() {
         RestClient.builder().baseUrl("http://localhost:$internalPort").build()
     }
 
-    private fun minimalReportJson(): String = objectMapper.writeValueAsString(
-        listOf(
-            TestFixtures.reportPayload(
-                reportId = UUID.randomUUID(),
-                routeId = UUID.randomUUID(),
-                sectionId = UUID.randomUUID(),
-                siteId = UUID.randomUUID(),
-            ),
+    private fun minimalReportBody(reportId: UUID): String = objectMapper.writeValueAsString(
+        TestFixtures.reportPayload(
+            reportId = reportId,
+            routeId = UUID.randomUUID(),
+            sectionId = UUID.randomUUID(),
+            siteId = UUID.randomUUID(),
         ),
     )
 
@@ -96,10 +81,11 @@ class AuthTest : AbstractPostgresIntegrationTest() {
     }
 
     @Test
-    fun `POST api reports on LAN without auth returns 401 plus WWW-Authenticate`() {
-        val response = lanClient.post().uri("/api/reports")
+    fun `PUT api reports id on LAN without auth returns 401 plus WWW-Authenticate`() {
+        val reportId = UUID.randomUUID()
+        val response = lanClient.put().uri("/api/reports/$reportId")
             .contentType(MediaType.APPLICATION_JSON)
-            .body(minimalReportJson())
+            .body(minimalReportBody(reportId))
             .exchange { _, r -> r }
 
         assertThat(response.statusCode.value()).isEqualTo(401)
@@ -109,11 +95,12 @@ class AuthTest : AbstractPostgresIntegrationTest() {
     }
 
     @Test
-    fun `POST api reports on LAN with wrong bearer returns 401`() {
-        val response = lanClient.post().uri("/api/reports")
+    fun `PUT api reports id on LAN with wrong bearer returns 401`() {
+        val reportId = UUID.randomUUID()
+        val response = lanClient.put().uri("/api/reports/$reportId")
             .header(HttpHeaders.AUTHORIZATION, "Bearer wrong-key")
             .contentType(MediaType.APPLICATION_JSON)
-            .body(minimalReportJson())
+            .body(minimalReportBody(reportId))
             .exchange { _, r -> r }
 
         assertThat(response.statusCode.value()).isEqualTo(401)
@@ -122,11 +109,12 @@ class AuthTest : AbstractPostgresIntegrationTest() {
     }
 
     @Test
-    fun `POST api reports on LAN with correct bearer returns 201`() {
-        val response = lanClient.post().uri("/api/reports")
+    fun `PUT api reports id on LAN with correct bearer returns 201`() {
+        val reportId = UUID.randomUUID()
+        val response = lanClient.put().uri("/api/reports/$reportId")
             .header(HttpHeaders.AUTHORIZATION, "Bearer $TEST_API_KEY")
             .contentType(MediaType.APPLICATION_JSON)
-            .body(minimalReportJson())
+            .body(minimalReportBody(reportId))
             .exchange { _, r -> r }
 
         assertThat(response.statusCode.value()).isEqualTo(201)
@@ -153,15 +141,10 @@ class AuthTest : AbstractPostgresIntegrationTest() {
             .isEqualTo(ApiContract.VERSION.toString())
     }
 
-    /**
-     * Regression guard: the ordering between `ContractVersionFilter` and
-     * `LanIngestFilter` must not drift. `X-Contract-Version` has to be
-     * stamped on short-circuited LAN 4xx responses so a mismatched client
-     * can still diagnose a contract change instead of seeing a bare 401.
-     */
     @Test
     fun `contract version header is present on 401 short-circuit`() {
-        val response = lanClient.post().uri("/api/reports")
+        val reportId = UUID.randomUUID()
+        val response = lanClient.put().uri("/api/reports/$reportId")
             .contentType(MediaType.APPLICATION_JSON)
             .body("{}")
             .exchange { _, r -> r }
