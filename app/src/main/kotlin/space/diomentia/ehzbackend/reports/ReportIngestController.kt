@@ -4,65 +4,47 @@ import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
-import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import space.diomentia.ehzbackend.devices.Device
 import space.diomentia.ehzbackend.devices.DeviceTrackingFilter
 import space.diomentia.ehzbackend.reports.dto.ReportDto
-import tools.jackson.core.JacksonException
-import tools.jackson.databind.JsonNode
-import tools.jackson.databind.ObjectMapper
+import java.util.UUID
 
 /**
- * Thin HTTP adapter for `POST /api/reports`.
+ * Thin HTTP adapter for `PUT /api/reports/{id}`.
  *
- * The app's exporter emits a JSON **array** of reports; for robustness we also
- * accept a bare object. The body is parsed as [JsonNode] first and converted
- * per-element so a malformed element surfaces a clear 400 rather than mangling
- * the whole batch.
+ * The client (Android app) generates the report UUID, so it owns the
+ * identifier before the request. PUT is idempotent: a duplicate request
+ * with the same id overwrites the existing record rather than duplicating
+ * it — safe under network-flake retries.
  *
- * Response is 201 for both "created" and "replaced" — this endpoint is
- * ingestion, not REST creation, and we want a single success code.
+ * Response codes:
+ *   201 Created  — first PUT at this id
+ *   200 OK       — subsequent PUT overwrites an existing record
  */
 @RestController
 @RequestMapping("/api/reports")
 class ReportIngestController(
     private val ingestService: ReportIngestService,
-    private val objectMapper: ObjectMapper,
 ) {
-    @PostMapping
+    @PutMapping("/{id}")
     fun ingest(
-        @RequestBody body: JsonNode,
+        @PathVariable id: UUID,
+        @RequestBody dto: ReportDto,
         request: HttpServletRequest,
-    ): ResponseEntity<Map<String, Int>> {
-        val nodes: List<JsonNode> = when {
-            body.isArray -> body.toList()
-            body.isObject -> listOf(body)
-            else -> throw IllegalArgumentException(
-                "Request body must be a JSON object or array of reports"
-            )
+    ): ResponseEntity<Unit> {
+        if (dto.id != id) {
+            throw IllegalArgumentException("Path id $id does not match body id ${dto.id}")
         }
-
-        val reports: List<ReportDto> = nodes.map {
-            try {
-                objectMapper.treeToValue(it, ReportDto::class.java)
-            } catch (e: JacksonException) {
-                // Jackson 3: JacksonException is the unchecked base for all parser/binder failures.
-                throw IllegalArgumentException("Invalid report payload: ${e.message}", e)
-            }
-        }
-
-        // DeviceTrackingFilter stashes the upserted entity here when a valid
-        // X-Device-Id arrived on the request; null otherwise.
         val device = request.getAttribute(DeviceTrackingFilter.REQUEST_ATTR) as? Device
-
-        reports.forEach { ingestService.ingest(it, device) }
-
+        val wasNew = ingestService.ingest(dto, device)
         return ResponseEntity
-            .status(HttpStatus.CREATED)
-            .body(mapOf("accepted" to reports.size))
+            .status(if (wasNew) HttpStatus.CREATED else HttpStatus.OK)
+            .build()
     }
 
     @ExceptionHandler(IllegalArgumentException::class)

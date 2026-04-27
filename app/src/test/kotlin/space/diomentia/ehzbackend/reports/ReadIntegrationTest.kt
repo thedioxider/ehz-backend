@@ -9,7 +9,7 @@ import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
-import org.springframework.test.web.servlet.post
+import org.springframework.test.web.servlet.put
 import space.diomentia.ehzbackend.AbstractPostgresIntegrationTest
 import tools.jackson.databind.ObjectMapper
 import java.nio.file.Files
@@ -45,8 +45,9 @@ class ReadIntegrationTest : AbstractPostgresIntegrationTest() {
     @Autowired
     lateinit var objectMapper: ObjectMapper
 
-    private fun ingest(payload: Any) {
-        mockMvc.post("/api/reports") {
+    private fun ingest(payload: Map<String, Any?>) {
+        val reportId = UUID.fromString(payload["id"] as String)
+        mockMvc.put("/api/reports/{id}", reportId) {
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(payload)
         }.andExpect { status { isCreated() } }
@@ -69,8 +70,8 @@ class ReadIntegrationTest : AbstractPostgresIntegrationTest() {
             sectionId = sectionId,
             siteId = olderSiteId,
             inspector = "Alpha",
-            startTime = 1704321600L,
-            endTime = 1704325200L,
+            startTime = "2024-01-03T22:40:00Z",
+            endTime = "2024-01-03T23:40:00Z",
             fields = listOf(TestFixtures.textField("comment", "c", "x")),
         )
         val newer = TestFixtures.reportPayload(
@@ -79,12 +80,13 @@ class ReadIntegrationTest : AbstractPostgresIntegrationTest() {
             sectionId = sectionId,
             siteId = newerSiteId,
             inspector = "Beta",
-            startTime = 1704400000L,
-            endTime = 1704403600L,
+            startTime = "2024-01-04T22:40:00Z",
+            endTime = "2024-01-04T23:40:00Z",
             fields = listOf(TestFixtures.textField("comment", "c", "y")),
         )
 
-        ingest(listOf(older, newer))
+        ingest(older)
+        ingest(newer)
 
         // Filter by this test's route so unrelated reports from other tests
         // in the shared context don't pollute the assertions.
@@ -134,7 +136,9 @@ class ReadIntegrationTest : AbstractPostgresIntegrationTest() {
             routeName = "A-route",
         )
 
-        ingest(listOf(onRouteA, onRouteBNoMatchInspector, onRouteAWrongInspector))
+        ingest(onRouteA)
+        ingest(onRouteBNoMatchInspector)
+        ingest(onRouteAWrongInspector)
 
         // route=A AND inspector~=петров (case-insensitive) -> exactly one match.
         mockMvc.get("/api/reports") {
@@ -161,23 +165,23 @@ class ReadIntegrationTest : AbstractPostgresIntegrationTest() {
         val withoutUnderscore = "AlphaBeta"
 
         ingest(
-            listOf(
-                TestFixtures.reportPayload(
-                    reportId = UUID.randomUUID(),
-                    routeId = routeId,
-                    sectionId = sectionId,
-                    siteId = UUID.randomUUID(),
-                    inspector = withUnderscore,
-                    routeName = "Escape-route",
-                ),
-                TestFixtures.reportPayload(
-                    reportId = UUID.randomUUID(),
-                    routeId = routeId,
-                    sectionId = sectionId,
-                    siteId = UUID.randomUUID(),
-                    inspector = withoutUnderscore,
-                    routeName = "Escape-route",
-                ),
+            TestFixtures.reportPayload(
+                reportId = UUID.randomUUID(),
+                routeId = routeId,
+                sectionId = sectionId,
+                siteId = UUID.randomUUID(),
+                inspector = withUnderscore,
+                routeName = "Escape-route",
+            ),
+        )
+        ingest(
+            TestFixtures.reportPayload(
+                reportId = UUID.randomUUID(),
+                routeId = routeId,
+                sectionId = sectionId,
+                siteId = UUID.randomUUID(),
+                inspector = withoutUnderscore,
+                routeName = "Escape-route",
             ),
         )
 
@@ -216,13 +220,11 @@ class ReadIntegrationTest : AbstractPostgresIntegrationTest() {
         // We don't need 100+ rows to prove the cap — the response's page.size
         // reflects the Pageable the service used, so one row is enough.
         ingest(
-            listOf(
-                TestFixtures.reportPayload(
-                    reportId = UUID.randomUUID(),
-                    routeId = UUID.randomUUID(),
-                    sectionId = UUID.randomUUID(),
-                    siteId = UUID.randomUUID(),
-                ),
+            TestFixtures.reportPayload(
+                reportId = UUID.randomUUID(),
+                routeId = UUID.randomUUID(),
+                sectionId = UUID.randomUUID(),
+                siteId = UUID.randomUUID(),
             ),
         )
 
@@ -253,7 +255,7 @@ class ReadIntegrationTest : AbstractPostgresIntegrationTest() {
                 TestFixtures.textField("comment", "Комментарий", "ok"),
             ),
         )
-        ingest(listOf(payload))
+        ingest(payload)
 
         mockMvc.get("/api/reports/$reportId").andExpect {
             status { isOk() }
@@ -301,7 +303,7 @@ class ReadIntegrationTest : AbstractPostgresIntegrationTest() {
             siteId = siteId,
             fields = listOf(TestFixtures.photoField("site_photo", base64Value = photoB64)),
         )
-        ingest(listOf(payload))
+        ingest(payload)
 
         val response = mockMvc.get("/api/photos/$reportId/$siteId/site_photo.webp")
             .andExpect {

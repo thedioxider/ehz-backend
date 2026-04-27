@@ -26,12 +26,12 @@ import kotlin.text.Charsets.UTF_8
  *
  * Policy when `request.localPort == ehz.ingest.port`:
  *
- * | Verb + Path              | Auth required | Behavior          |
- * |--------------------------|---------------|-------------------|
- * | `GET /api/ping`          | no            | pass through      |
- * | `GET /api/info`          | no            | pass through      |
- * | `POST /api/reports`      | yes           | validate bearer   |
- * | anything else            | —             | 404 (hide path)   |
+ * | Verb + Path                   | Auth required | Behavior          |
+ * |-------------------------------|---------------|-------------------|
+ * | `GET /api/ping`               | no            | pass through      |
+ * | `GET /api/info`               | no            | pass through      |
+ * | `PUT /api/reports/{uuid}`     | yes           | validate bearer   |
+ * | anything else                 | —             | 404 (hide path)   |
  *
  * Unauthorized paths return **404, not 403** — we deliberately don't admit
  * that a path exists to a LAN attacker. Paths that *are* on the allowlist
@@ -74,7 +74,7 @@ class LanIngestFilter(
             method == HttpMethod.GET.name() && path == PATH_INFO -> {
                 chain.doFilter(request, response)
             }
-            method == HttpMethod.POST.name() && path == PATH_REPORTS -> {
+            method == HttpMethod.PUT.name() && REPORTS_PUT_PATTERN.matches(path) -> {
                 if (isAuthorized(request)) {
                     chain.doFilter(request, response)
                 } else {
@@ -117,7 +117,9 @@ class LanIngestFilter(
     companion object {
         const val PATH_PING: String = "/api/ping"
         const val PATH_INFO: String = "/api/info"
-        const val PATH_REPORTS: String = "/api/reports"
         const val BEARER_PREFIX: String = "Bearer "
+        val REPORTS_PUT_PATTERN: Regex = Regex(
+            "/api/reports/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+        )
     }
 }

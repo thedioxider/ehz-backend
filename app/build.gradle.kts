@@ -22,6 +22,7 @@ dependencies {
     implementation("tools.jackson.module:jackson-module-kotlin")
     implementation("tools.jackson.dataformat:jackson-dataformat-yaml")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
 
     runtimeOnly("org.postgresql:postgresql")
 
@@ -47,6 +48,16 @@ tasks.named<Jar>("jar") { enabled = false }
 
 // We don't use `bootRun` — development is via `docker compose -f docker-compose.dev.yml up --build`.
 tasks.named("bootRun") { enabled = false }
+
+tasks.register<Test>("regenOpenApiSpec") {
+    description = "Regenerate docs/api-contract-{lan,internal}.yaml from the running app"
+    group = "documentation"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    filter { includeTestsMatching("*OpenApiContractTest*") }
+    systemProperty("ehz.openapi.regen", "true")
+    useJUnitPlatform()
+}
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     compilerOptions {

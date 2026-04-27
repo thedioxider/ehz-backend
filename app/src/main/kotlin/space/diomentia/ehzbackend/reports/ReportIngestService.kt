@@ -41,13 +41,12 @@ class ReportIngestService(
     private val photoStorage: PhotoStorage,
 ) {
     @Transactional
-    fun ingest(dto: ReportDto, device: Device? = null) {
+    fun ingest(dto: ReportDto, device: Device? = null): Boolean {
         val route = upsertRoute(dto.route.id, dto.route.name, dto.route.lengthKm)
         val section = upsertSection(dto.section.id, route, dto.section.beginKm, dto.section.endKm)
 
-        // Idempotent replace: delete first (cascade clears sites + fields),
-        // then flush so the re-insert below doesn't collide on PK.
-        if (reportRepository.existsById(dto.id)) {
+        val wasNew = !reportRepository.existsById(dto.id)
+        if (!wasNew) {
             reportRepository.deleteById(dto.id)
             reportRepository.flush()
         }
@@ -81,6 +80,8 @@ class ReportIngestService(
             // Cascade from Site.fields (CascadeType.ALL) persists fields alongside the site.
             siteRepository.save(site)
         }
+
+        return wasNew
     }
 
     private fun upsertRoute(id: UUID, name: String, lengthKm: Int?): Route {

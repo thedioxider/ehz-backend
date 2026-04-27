@@ -1,0 +1,254 @@
+openapi: 3.1.0
+info:
+  title: ehz-backend API
+  description: Wire contract for the ehz-backend service. Contract version 1 — bump
+    on any backwards-incompatible change.
+  version: "1"
+servers:
+- url: /
+  description: ehz-backend
+security:
+- bearerAuth: []
+paths:
+  /api/reports/{id}:
+    put:
+      tags:
+      - report-ingest-controller
+      operationId: ingest
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportDto"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content: {}
+  /api/ping:
+    get:
+      tags:
+      - info-controller
+      operationId: ping
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: boolean
+  /api/info:
+    get:
+      tags:
+      - info-controller
+      operationId: info
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties: {}
+components:
+  schemas:
+    CoordinatesDto:
+      type: object
+      properties:
+        lat:
+          type: number
+          format: double
+        lng:
+          type: number
+          format: double
+    FieldDto:
+      type: object
+      properties:
+        spec_id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        value:
+          type: string
+        unit:
+          type:
+          - string
+          - "null"
+    ReportDto:
+      type: object
+      properties:
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        id:
+          type: string
+          format: uuid
+        inspector:
+          type: string
+        route:
+          $ref: "#/components/schemas/RouteDto"
+        section:
+          $ref: "#/components/schemas/SectionDto"
+        sites:
+          type: array
+          items:
+            $ref: "#/components/schemas/SiteDto"
+    RouteDto:
+      type: object
+      properties:
+        length_km:
+          type: integer
+          format: int32
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    SectionDto:
+      type: object
+      properties:
+        begin_km:
+          type: integer
+          format: int32
+        end_km:
+          type: integer
+          format: int32
+        id:
+          type: string
+          format: uuid
+    SiteDto:
+      type: object
+      properties:
+        position_km:
+          type: number
+          format: double
+        validation_id:
+          type: string
+        id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        location:
+          oneOf:
+          - $ref: "#/components/schemas/CoordinatesDto"
+          - type: "null"
+        fields:
+          type:
+          - array
+          - "null"
+          items:
+            $ref: "#/components/schemas/FieldDto"
+    CoordinatesViewDto:
+      type: object
+      properties:
+        lat:
+          type: number
+          format: double
+        lng:
+          type: number
+          format: double
+    FieldViewDto:
+      type: object
+      properties:
+        spec_id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        unit:
+          type:
+          - string
+          - "null"
+        value:
+          type:
+          - string
+          - "null"
+    ReportDetailDto:
+      type: object
+      properties:
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        received_at:
+          type: string
+          format: date-time
+        id:
+          type: string
+          format: uuid
+        inspector:
+          type: string
+        route:
+          $ref: "#/components/schemas/RouteSummaryDto"
+        section:
+          $ref: "#/components/schemas/SectionSummaryDto"
+        sites:
+          type: array
+          items:
+            $ref: "#/components/schemas/SiteViewDto"
+    RouteSummaryDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    SectionSummaryDto:
+      type: object
+      properties:
+        begin_km:
+          type: integer
+          format: int32
+        end_km:
+          type: integer
+          format: int32
+        id:
+          type: string
+          format: uuid
+    SiteViewDto:
+      type: object
+      properties:
+        position_km:
+          type: number
+          format: double
+        validation_id:
+          type: string
+        id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        location:
+          oneOf:
+          - $ref: "#/components/schemas/CoordinatesViewDto"
+          - type: "null"
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/FieldViewDto"
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: Static API key — obtain from the operator dashboard.
+      scheme: bearer
