@@ -213,6 +213,33 @@ class IngestIntegrationTest : AbstractPostgresIntegrationTest() {
     }
 
     @Test
+    fun `rejects numeric epoch-second timestamp`() {
+        val reportId = UUID.randomUUID()
+        val payload = mapOf(
+            "id" to reportId.toString(),
+            "inspector" to "Test",
+            "route" to mapOf(
+                "id" to UUID.randomUUID().toString(),
+                "name" to "R",
+            ),
+            "section" to mapOf(
+                "id" to UUID.randomUUID().toString(),
+                "begin_km" to 0,
+                "end_km" to 1,
+            ),
+            "start_time" to 1704321600L,  // numeric — must be rejected
+            "sites" to emptyList<Any>(),
+        )
+
+        mockMvc.put("/api/reports/{id}", reportId) {
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(payload)
+        }.andExpect {
+            status { isBadRequest() }
+        }
+    }
+
+    @Test
     fun `auto-inserts unknown route and section from the payload`() {
         val reportId = UUID.randomUUID()
         val routeId = UUID.randomUUID()
