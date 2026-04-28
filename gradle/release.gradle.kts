@@ -177,7 +177,7 @@ val saveAppImage by tasks.registering(Exec::class) {
     val out = appTarball.get().asFile.absolutePath
     commandLine(
         "bash", "-c",
-        """docker save "$appImageTag" | gzip > "$out"""",
+        """docker save "$appImageTag" "$appImageRepo:latest" | gzip > "$out"""",
     )
     doFirst {
         appTarball.get().asFile.parentFile.mkdirs()
@@ -194,7 +194,7 @@ val saveDiscoveryImage by tasks.registering(Exec::class) {
     val out = discoveryTarball.get().asFile.absolutePath
     commandLine(
         "bash", "-c",
-        """docker save "$discoveryImageTag" | gzip > "$out"""",
+        """docker save "$discoveryImageTag" "$discoveryImageRepo:latest" | gzip > "$out"""",
     )
     doFirst {
         discoveryTarball.get().asFile.parentFile.mkdirs()
