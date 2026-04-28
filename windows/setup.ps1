@@ -1,5 +1,5 @@
 $ErrorActionPreference = "Stop"
-Set-Location (Split-Path $PSScriptRoot)
+Set-Location $PSScriptRoot
 
 $appImage = Get-Item img\ehz-backend-app-*.tar.gz -ErrorAction SilentlyContinue | Select-Object -First 1
 $discoveryImage = Get-Item img\ehz-backend-discovery-*.tar.gz -ErrorAction SilentlyContinue | Select-Object -First 1

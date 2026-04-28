@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")"
 
 APP_IMAGE=$(ls img/ehz-backend-app-*.tar.gz 2>/dev/null | head -1)
 DISCOVERY_IMAGE=$(ls img/ehz-backend-discovery-*.tar.gz 2>/dev/null | head -1)
