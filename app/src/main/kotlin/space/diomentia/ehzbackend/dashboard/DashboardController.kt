@@ -1,5 +1,8 @@
 package space.diomentia.ehzbackend.dashboard
 
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.client.j2se.MatrixToImageWriter
+import com.google.zxing.qrcode.QRCodeWriter
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.boot.info.BuildProperties
 import org.springframework.stereotype.Controller
@@ -8,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import space.diomentia.ehzbackend.ApiContract
 import space.diomentia.ehzbackend.bootstrap.CredentialsStore
 import space.diomentia.ehzbackend.reports.ReportRepository
+import java.io.ByteArrayOutputStream
 import java.net.InetAddress
 import java.net.NetworkInterface
 import java.nio.file.Files
@@ -15,6 +19,7 @@ import java.nio.file.Path
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.util.Base64
 import javax.sql.DataSource
 
 /**
@@ -84,6 +89,7 @@ class DashboardController(
             ),
         )
         model.addAttribute("apiKey", credentialsStore.apiKey)
+        model.addAttribute("apiKeyQr", generateQrDataUri(credentialsStore.apiKey))
         return "dashboard"
     }
 
@@ -182,6 +188,13 @@ class DashboardController(
             }
         }
         return null
+    }
+
+    private fun generateQrDataUri(text: String): String {
+        val matrix = QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, 256, 256)
+        val baos = ByteArrayOutputStream()
+        MatrixToImageWriter.writeToStream(matrix, "PNG", baos)
+        return "data:image/png;base64," + Base64.getEncoder().encodeToString(baos.toByteArray())
     }
 
     private companion object {

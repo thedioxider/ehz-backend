@@ -23,6 +23,8 @@ dependencies {
     implementation("tools.jackson.dataformat:jackson-dataformat-yaml")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
+    implementation("com.google.zxing:core:3.5.3")
+    implementation("com.google.zxing:javase:3.5.3")
 
     runtimeOnly("org.postgresql:postgresql")
 
