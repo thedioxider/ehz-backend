@@ -1,0 +1,18 @@
+$ErrorActionPreference = "Stop"
+
+$appImage = Get-Item images\ehz-backend-app-*.tar.gz -ErrorAction SilentlyContinue | Select-Object -First 1
+$discoveryImage = Get-Item images\ehz-backend-discovery-*.tar.gz -ErrorAction SilentlyContinue | Select-Object -First 1
+
+if (-not $appImage -or -not $discoveryImage) {
+    Write-Error "Ошибка: образы не найдены в папке images\"
+    exit 1
+}
+
+Write-Host "Загрузка образов..."
+Get-Content $appImage.FullName -Raw | docker load
+Get-Content $discoveryImage.FullName -Raw | docker load
+
+Write-Host "Запуск сервиса... (для остановки нажмите Ctrl+C)"
+Write-Host "Панель управления: http://localhost:19080"
+Write-Host ""
+docker compose up
