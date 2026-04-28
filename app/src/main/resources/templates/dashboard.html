@@ -58,7 +58,8 @@
 </table>
 
 <h2>API key</h2>
-<p>Copy this value into the companion app during pairing.</p>
+<p>Copy this value or scan the QR code into the companion app during pairing.</p>
 <code class="key" th:text="${apiKey}">…</code>
+<img th:src="${apiKeyQr}" alt="QR code for API key" width="200" height="200" style="display:block; margin-top:1em;">
 </body>
 </html>
