@@ -1,0 +1,14 @@
+diagnostic_objects:
+  - id: 5cb6f3ca-6b42-4a76-a7d9-2c12b1e8f0d3
+    name: САЦ-III
+    length_km: 3600
+
+diagnostic_areas:
+  - id: f19c3e67-04d1-4c3f-9b8d-8a2ed6f54e2f
+    begin_km: 0
+    end_km: 41
+    route_id: 5cb6f3ca-6b42-4a76-a7d9-2c12b1e8f0d3
+  - id: 7a18e5d2-3c0b-4e5f-90c9-41b5a02fb8d7
+    begin_km: 41
+    end_km: 82
+    route_id: 5cb6f3ca-6b42-4a76-a7d9-2c12b1e8f0d3

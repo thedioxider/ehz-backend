@@ -1,0 +1,81 @@
+services:
+  # The service key `db` is the hostname the app resolves via Docker's DNS.
+  # It's referenced from `app/src/main/resources/application.yml`
+  # (`spring.datasource.url`) — rename both together.
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ehz
+      POSTGRES_USER: ehz
+      # The Postgres image requires its superuser password via POSTGRES_PASSWORD.
+      # Both services source from the same operator-facing `DB_PASSWORD` in `.env`.
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ehz}
+    volumes:
+      - ./data/pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:15432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ehz -d ehz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    image: diomentia/ehz-backend-app:${EHZ_VERSION:-latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD:-ehz}
+      EHZ_API_PORT: "19081"
+    volumes:
+      - ./data:/data
+    ports:
+      # Dashboard — operator-only, bound to loopback on the host.
+      - "127.0.0.1:19080:8080"
+      # LAN ingest — reachable from the Android app on the local network.
+      - "19081:8081"
+      # Port 8082 (internal API) is DELIBERATELY NOT PUBLISHED. Frontend and
+      # other sibling services reach it over the compose bridge network.
+
+  discovery:
+    image: diomentia/ehz-backend-discovery:${EHZ_VERSION:-latest}
+    restart: unless-stopped
+    depends_on:
+      - app
+    # Host networking is required: the UDP discovery protocol uses fixed
+    # ports (5353/udp mDNS, 5370/udp broadcast responder) that the Android
+    # client can't discover through Docker's NAT. This service announces the
+    # app's LAN ingest port (published by the `app` service above).
+    network_mode: host
+    environment:
+      EHZ_ANNOUNCE_PORT: "19081"
+      EHZ_ANNOUNCE_IP: ${EHZ_ANNOUNCE_IP:-auto}
+      EHZ_CONTRACT_VERSION: "1"
+    volumes:
+      # Discovery has host-network visibility and resolves the real LAN IP;
+      # the app is on the Docker bridge and cannot see host NICs. Discovery
+      # writes the resolved IP to /state/lan-ip, the app reads it at
+      # /data/discovery/lan-ip, and the dashboard renders it for onboarding.
+      - ./data/discovery:/state
+
+  # ------------------------------------------------------------------
+  # Placeholder: operator web frontend (not yet implemented).
+  #
+  # When added, it goes on the default compose bridge so it can reach the
+  # app's internal API at http://app:8082/api/... without crossing any
+  # published port. The frontend itself would publish a localhost-only
+  # port for the operator (e.g. 127.0.0.1:19090:80), mirroring the
+  # dashboard's "localhost is the trust boundary" posture.
+  # ------------------------------------------------------------------
+  # frontend:
+  #   image: diomentia/ehz-backend-frontend:${EHZ_VERSION:-latest}
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - app
+  #   environment:
+  #     EHZ_INTERNAL_API_BASE: http://app:8082/api
+  #   ports:
+  #     - "127.0.0.1:19090:80"

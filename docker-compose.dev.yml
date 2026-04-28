@@ -1,0 +1,10 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+
+  discovery:
+    build:
+      context: .
+      dockerfile: discovery/Dockerfile

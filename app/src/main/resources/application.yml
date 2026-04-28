@@ -1,0 +1,60 @@
+spring:
+  application:
+    name: ehz-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://db:5432/ehz}
+    username: ${DB_USER:ehz}
+    password: ${DB_PASSWORD:ehz}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+  servlet:
+    multipart:
+      max-request-size: 64MB
+      max-file-size: 64MB
+
+server:
+  # Internal API — reachable only from the Docker bridge network (compose doesn't publish 8082).
+  port: 8082
+  address: 0.0.0.0
+  tomcat:
+    max-http-form-post-size: 64MB
+    max-swallow-size: 64MB
+  max-http-request-header-size: 16KB
+
+management:
+  server:
+    # Dashboard + Actuator. The host-side publish binding `127.0.0.1:19080:8080`
+    # in docker-compose.yml is what keeps this loopback-only on the operator's
+    # machine; the container-internal listener has to bind 0.0.0.0 so Docker's
+    # port forwarding can reach it.
+    port: 8080
+    address: 0.0.0.0
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
+
+ehz:
+  data-dir: /data
+  # Directory that holds operator-editable config overrides (e.g. report-config.yaml).
+  # Derives from `data-dir`; Spring resolves the nested ${} placeholder natively.
+  config-dir: ${ehz.data-dir}/config
+  ingest:
+    # Container-internal listener port. Added programmatically via WebServerFactoryCustomizer.
+    port: 8081
+    # Host-facing published port the Android app actually connects to. Compose maps
+    # this to the container's `ingest.port` (8081 inside) and sets EHZ_API_PORT to
+    # the host-side value. Surfaced on the dashboard so the operator can read off
+    # the right number when onboarding a device.
+    published-port: ${EHZ_API_PORT:8081}

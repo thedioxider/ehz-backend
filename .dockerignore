@@ -1,0 +1,12 @@
+.git
+.gradle
+build
+**/build
+data/
+.idea
+.kotlin
+*.iml
+.env
+.env.*
+!.env.example
+CLAUDE.md

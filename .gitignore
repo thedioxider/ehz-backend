@@ -52,3 +52,6 @@ bin/
 
 ### Gradle local machine config ###
 local.properties
+
+### Git worktrees ###
+.worktrees/
