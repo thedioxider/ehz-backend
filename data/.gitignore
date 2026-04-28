@@ -1,0 +1,6 @@
+*
+!.gitignore
+!backup.sh
+!backup.ps1
+!restore.sh
+!restore.ps1

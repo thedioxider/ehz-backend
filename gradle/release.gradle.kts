@@ -218,6 +218,10 @@ val stageRelease by tasks.registering(Copy::class) {
     from(repoRoot.file("ИНСТРУКЦИЯ.md"))
     from(repoRoot.file("setup.sh"))
     from(repoRoot.file("setup.ps1"))
+    from(repoRoot.file("data/backup.sh")) { into("data") }
+    from(repoRoot.file("data/backup.ps1")) { into("data") }
+    from(repoRoot.file("data/restore.sh")) { into("data") }
+    from(repoRoot.file("data/restore.ps1")) { into("data") }
     into(stagingDir)
 }
 
@@ -233,7 +237,7 @@ val generateSha256Sums by tasks.registering(Exec::class) {
     workingDir = stagingDir.get().asFile
     commandLine(
         "bash", "-c",
-        "sha256sum images/*.tar.gz docker-compose.yml .env.example README.md 'ИНСТРУКЦИЯ.md' setup.sh setup.ps1 > SHA256SUMS",
+        "sha256sum images/*.tar.gz docker-compose.yml .env.example README.md 'ИНСТРУКЦИЯ.md' setup.sh setup.ps1 data/backup.sh data/backup.ps1 data/restore.sh data/restore.ps1 > SHA256SUMS",
     )
 }
 
