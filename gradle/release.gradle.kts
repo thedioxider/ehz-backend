@@ -1,6 +1,6 @@
 // Release pipeline for ehz-backend.
 //
-// Invoked as: ./gradlew release -Pehz.version=1.2.3
+// Invoked as: ./gradlew release --no-daemon
 //
 // Builds the two Docker images (app, discovery), optionally pushes them to
 // Docker Hub (skipped when DOCKERHUB_USERNAME/DOCKERHUB_TOKEN are absent),
@@ -30,12 +30,9 @@ val buildAppImage by tasks.registering(Exec::class) {
     group = "release"
     description = "Build the app Docker image and tag it with the release version + latest."
     dependsOn(appBootJar)
-    inputs.files(appBootJar.outputs.files)
-    inputs.file(repoRoot.file("app/Dockerfile"))
-    inputs.file(repoRoot.file("app/docker-entrypoint.sh"))
-    // Stamp a marker file when the build succeeds so Gradle can up-to-date check.
-    val marker = releaseDir.map { it.file("markers/app-image-$releaseVersion.stamp") }
-    outputs.file(marker)
+    // Always rebuild — Docker's layer cache handles efficiency, and a stale
+    // daemon image must never silently end up in the release tarball.
+    outputs.upToDateWhen { false }
     workingDir = repoRoot.asFile
     commandLine(
         "docker", "build",
@@ -44,22 +41,13 @@ val buildAppImage by tasks.registering(Exec::class) {
         "-t", "$appImageRepo:latest",
         ".",
     )
-    doFirst {
-        marker.get().asFile.parentFile.mkdirs()
-    }
-    doLast {
-        marker.get().asFile.writeText("$appImageTag\n")
-    }
 }
 
 val buildDiscoveryImage by tasks.registering(Exec::class) {
     group = "release"
     description = "Build the discovery Docker image and tag it with the release version + latest."
     dependsOn(discoveryShadowJar)
-    inputs.files(discoveryShadowJar.outputs.files)
-    inputs.file(repoRoot.file("discovery/Dockerfile"))
-    val marker = releaseDir.map { it.file("markers/discovery-image-$releaseVersion.stamp") }
-    outputs.file(marker)
+    outputs.upToDateWhen { false }
     workingDir = repoRoot.asFile
     commandLine(
         "docker", "build",
@@ -68,12 +56,6 @@ val buildDiscoveryImage by tasks.registering(Exec::class) {
         "-t", "$discoveryImageRepo:latest",
         ".",
     )
-    doFirst {
-        marker.get().asFile.parentFile.mkdirs()
-    }
-    doLast {
-        marker.get().asFile.writeText("$discoveryImageTag\n")
-    }
 }
 
 val buildImages by tasks.registering {
@@ -171,8 +153,7 @@ val saveAppImage by tasks.registering(Exec::class) {
     group = "release"
     description = "Save the app image as a gzipped tar under build/release/images/."
     dependsOn(buildAppImage)
-    inputs.files(buildAppImage.get().outputs.files)
-    outputs.file(appTarball)
+    outputs.upToDateWhen { false }
     workingDir = repoRoot.asFile
     val out = appTarball.get().asFile.absolutePath
     commandLine(
@@ -188,8 +169,7 @@ val saveDiscoveryImage by tasks.registering(Exec::class) {
     group = "release"
     description = "Save the discovery image as a gzipped tar under build/release/images/."
     dependsOn(buildDiscoveryImage)
-    inputs.files(buildDiscoveryImage.get().outputs.files)
-    outputs.file(discoveryTarball)
+    outputs.upToDateWhen { false }
     workingDir = repoRoot.asFile
     val out = discoveryTarball.get().asFile.absolutePath
     commandLine(
