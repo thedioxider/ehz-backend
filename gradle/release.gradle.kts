@@ -24,6 +24,14 @@ val discoveryImageTag = "$discoveryImageRepo:$releaseVersion"
 val appBootJar = tasks.getByPath(":app:bootJar")
 val discoveryShadowJar = tasks.getByPath(":discovery:shadowJar")
 
+// ---- clean stale artifacts --------------------------------------------------
+
+val cleanReleaseArtifacts by tasks.registering(Delete::class) {
+    group = "release"
+    description = "Wipe images/ and staging dirs so no artifacts from previous releases bleed in."
+    delete(imagesDir, linuxStagingDir, windowsStagingDir)
+}
+
 // ---- build images -----------------------------------------------------------
 
 val buildAppImage by tasks.registering(Exec::class) {
@@ -152,7 +160,7 @@ val discoveryTarball = imagesDir.map { it.file("ehz-backend-discovery-$releaseVe
 val saveAppImage by tasks.registering(Exec::class) {
     group = "release"
     description = "Save the app image as a gzipped tar under build/release/images/."
-    dependsOn(buildAppImage)
+    dependsOn(buildAppImage, cleanReleaseArtifacts)
     outputs.upToDateWhen { false }
     workingDir = repoRoot.asFile
     val out = appTarball.get().asFile.absolutePath
@@ -168,7 +176,7 @@ val saveAppImage by tasks.registering(Exec::class) {
 val saveDiscoveryImage by tasks.registering(Exec::class) {
     group = "release"
     description = "Save the discovery image as a gzipped tar under build/release/images/."
-    dependsOn(buildDiscoveryImage)
+    dependsOn(buildDiscoveryImage, cleanReleaseArtifacts)
     outputs.upToDateWhen { false }
     workingDir = repoRoot.asFile
     val out = discoveryTarball.get().asFile.absolutePath
