@@ -42,8 +42,8 @@ bin/
 .DS_Store
 
 ### Project runtime data ###
-# Docker volume: photos, pgdata, auto-generated credentials
-/data/
+# Backup archives accumulate here; scripts are version-controlled via data/.gitignore
+/data/ehz-backup-*
 
 ### Environment / secrets ###
 .env

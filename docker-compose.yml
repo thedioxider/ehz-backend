@@ -1,3 +1,5 @@
+name: ehz
+
 services:
   # The service key `db` is the hostname the app resolves via Docker's DNS.
   # It's referenced from `app/src/main/resources/application.yml`
@@ -12,7 +14,7 @@ services:
       # Both services source from the same operator-facing `DB_PASSWORD` in `.env`.
       POSTGRES_PASSWORD: ${DB_PASSWORD:-ehz}
     volumes:
-      - ./data/pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     ports:
       - "127.0.0.1:15432:5432"
     healthcheck:
@@ -31,7 +33,10 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-ehz}
       EHZ_API_PORT: "19081"
     volumes:
-      - ./data:/data
+      - appdata:/data
+      # discoverystate overlays appdata at /data/discovery so the dashboard
+      # can read the LAN IP that the discovery container writes to /state/lan-ip.
+      - discoverystate:/data/discovery
     ports:
       # Dashboard — operator-only, bound to loopback on the host.
       - "127.0.0.1:19080:8080"
@@ -55,11 +60,7 @@ services:
       EHZ_ANNOUNCE_IP: ${EHZ_ANNOUNCE_IP:-auto}
       EHZ_CONTRACT_VERSION: "1"
     volumes:
-      # Discovery has host-network visibility and resolves the real LAN IP;
-      # the app is on the Docker bridge and cannot see host NICs. Discovery
-      # writes the resolved IP to /state/lan-ip, the app reads it at
-      # /data/discovery/lan-ip, and the dashboard renders it for onboarding.
-      - ./data/discovery:/state
+      - discoverystate:/state
 
   # ------------------------------------------------------------------
   # Placeholder: operator web frontend (not yet implemented).
@@ -79,3 +80,10 @@ services:
   #     EHZ_INTERNAL_API_BASE: http://app:8082/api
   #   ports:
   #     - "127.0.0.1:19090:80"
+
+volumes:
+  pgdata:
+  appdata:
+  # Shared between the discovery and app services: discovery writes
+  # /state/lan-ip; app reads it at /data/discovery/lan-ip.
+  discoverystate:
