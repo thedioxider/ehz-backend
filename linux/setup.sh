@@ -13,6 +13,8 @@ fi
 echo "Загрузка образов..."
 docker load < "$APP_IMAGE"
 docker load < "$DISCOVERY_IMAGE"
+docker tag diomentia/ehz-backend-app:$(echo "$APP_IMAGE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+') diomentia/ehz-backend-app:latest
+docker tag diomentia/ehz-backend-discovery:$(echo "$DISCOVERY_IMAGE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+') diomentia/ehz-backend-discovery:latest
 
 echo "Запуск сервиса... (для остановки нажмите Ctrl+C)"
 echo "Панель управления: http://localhost:19080"
