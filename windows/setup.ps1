@@ -1,10 +1,11 @@
 $ErrorActionPreference = "Stop"
+Set-Location (Split-Path $PSScriptRoot)
 
-$appImage = Get-Item images\ehz-backend-app-*.tar.gz -ErrorAction SilentlyContinue | Select-Object -First 1
-$discoveryImage = Get-Item images\ehz-backend-discovery-*.tar.gz -ErrorAction SilentlyContinue | Select-Object -First 1
+$appImage = Get-Item img\ehz-backend-app-*.tar.gz -ErrorAction SilentlyContinue | Select-Object -First 1
+$discoveryImage = Get-Item img\ehz-backend-discovery-*.tar.gz -ErrorAction SilentlyContinue | Select-Object -First 1
 
 if (-not $appImage -or -not $discoveryImage) {
-    Write-Error "Ошибка: образы не найдены в папке images\"
+    Write-Error "Ошибка: образы не найдены в папке img\"
     exit 1
 }
 

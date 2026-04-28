@@ -2,6 +2,7 @@
 set -e
 cd "$(dirname "$0")/.."
 
+mkdir -p data
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 ARCHIVE="ehz-backup-$TIMESTAMP.tar.gz"
 

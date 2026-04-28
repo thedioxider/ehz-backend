@@ -1,6 +1,7 @@
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot)
 
+New-Item -ItemType Directory -Force data | Out-Null
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $archive = "ehz-backup-$timestamp.tar.gz"
 $dataPath = (Resolve-Path "data").Path

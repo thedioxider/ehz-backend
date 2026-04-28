@@ -4,8 +4,8 @@
 //
 // Builds the two Docker images (app, discovery), optionally pushes them to
 // Docker Hub (skipped when DOCKERHUB_USERNAME/DOCKERHUB_TOKEN are absent),
-// and packages an air-gap ZIP containing image tarballs, the operator compose
-// file, and SHA256SUMS.
+// and packages two air-gap ZIPs (linux / windows) containing image tarballs,
+// the operator compose file, platform scripts, and SHA256SUMS.
 //
 // `publishGithubRelease` is a sibling task, not wired into `release`.
 
@@ -13,7 +13,8 @@ val releaseVersion = project.version.toString()
 val repoRoot = rootProject.layout.projectDirectory
 val releaseDir = rootProject.layout.buildDirectory.dir("release")
 val imagesDir = rootProject.layout.buildDirectory.dir("release/images")
-val stagingDir = rootProject.layout.buildDirectory.dir("release/stage")
+val linuxStagingDir = rootProject.layout.buildDirectory.dir("release/stage-linux")
+val windowsStagingDir = rootProject.layout.buildDirectory.dir("release/stage-windows")
 
 val appImageRepo = "diomentia/ehz-backend-app"
 val discoveryImageRepo = "diomentia/ehz-backend-discovery"
@@ -202,69 +203,104 @@ val saveDiscoveryImage by tasks.registering(Exec::class) {
 
 // ---- staging + SHA256SUMS ---------------------------------------------------
 
-// Copy the image tarballs and the three root-level shipped files into a staging
-// directory whose layout matches what ends up inside the ZIP. sha256sum then
-// runs with workingDir = staging dir and records paths relative to it, so
-// `sha256sum -c SHA256SUMS` works as soon as the ZIP is extracted.
-val stageRelease by tasks.registering(Copy::class) {
-    group = "release"
-    description = "Assemble the release staging directory that the ZIP ships."
-    dependsOn(saveAppImage, saveDiscoveryImage)
-    from(appTarball) { into("images") }
-    from(discoveryTarball) { into("images") }
+// Each platform gets its own staging directory whose layout matches what ends
+// up inside the ZIP. sha256sum runs with workingDir = staging dir and records
+// paths relative to it, so `sha256sum -c SHA256SUMS` works after extraction.
+
+val sharedFiles: CopySpec.() -> Unit = {
+    from(appTarball) { into("img") }
+    from(discoveryTarball) { into("img") }
     from(repoRoot.file("docker-compose.yml"))
     from(repoRoot.file(".env.example"))
-    from(repoRoot.file("README.md"))
-    from(repoRoot.file("ИНСТРУКЦИЯ.md"))
-    from(repoRoot.file("setup.sh"))
-    from(repoRoot.file("setup.ps1"))
-    from(repoRoot.file("data/backup.sh")) { into("data") }
-    from(repoRoot.file("data/backup.ps1")) { into("data") }
-    from(repoRoot.file("data/restore.sh")) { into("data") }
-    from(repoRoot.file("data/restore.ps1")) { into("data") }
-    into(stagingDir)
 }
 
-val generateSha256Sums by tasks.registering(Exec::class) {
+val stageLinuxRelease by tasks.registering(Copy::class) {
     group = "release"
-    description = "Write SHA256SUMS alongside the staged release files."
-    dependsOn(stageRelease)
-    // Track the staged payload as inputs but exclude the SHA256SUMS file itself
-    // to avoid a self-referential dependency that would mark the task always-out-of-date.
-    inputs.files(fileTree(stagingDir) { exclude("SHA256SUMS") })
-    val sumsFile = stagingDir.map { it.file("SHA256SUMS") }
+    description = "Assemble the Linux release staging directory."
+    dependsOn(saveAppImage, saveDiscoveryImage)
+    sharedFiles()
+    from(repoRoot.file("linux/ИНСТРУКЦИЯ.md"))
+    from(repoRoot.file("linux/setup.sh"))
+    from(repoRoot.file("linux/backup.sh")) { into("tools") }
+    from(repoRoot.file("linux/restore.sh")) { into("tools") }
+    into(linuxStagingDir)
+}
+
+val stageWindowsRelease by tasks.registering(Copy::class) {
+    group = "release"
+    description = "Assemble the Windows release staging directory."
+    dependsOn(saveAppImage, saveDiscoveryImage)
+    sharedFiles()
+    from(repoRoot.file("windows/ИНСТРУКЦИЯ.md"))
+    from(repoRoot.file("windows/setup.ps1"))
+    from(repoRoot.file("windows/backup.ps1")) { into("tools") }
+    from(repoRoot.file("windows/restore.ps1")) { into("tools") }
+    into(windowsStagingDir)
+}
+
+val generateLinuxSha256Sums by tasks.registering(Exec::class) {
+    group = "release"
+    description = "Write SHA256SUMS for the Linux release."
+    dependsOn(stageLinuxRelease)
+    inputs.files(fileTree(linuxStagingDir) { exclude("SHA256SUMS") })
+    val sumsFile = linuxStagingDir.map { it.file("SHA256SUMS") }
     outputs.file(sumsFile)
-    workingDir = stagingDir.get().asFile
+    workingDir = linuxStagingDir.get().asFile
     commandLine(
         "bash", "-c",
-        "sha256sum images/*.tar.gz docker-compose.yml .env.example README.md 'ИНСТРУКЦИЯ.md' setup.sh setup.ps1 data/backup.sh data/backup.ps1 data/restore.sh data/restore.ps1 > SHA256SUMS",
+        "sha256sum img/*.tar.gz docker-compose.yml .env.example 'ИНСТРУКЦИЯ.md' setup.sh tools/backup.sh tools/restore.sh > SHA256SUMS",
     )
 }
 
-// ---- ZIP --------------------------------------------------------------------
-
-val bundleRelease by tasks.registering(Zip::class) {
+val generateWindowsSha256Sums by tasks.registering(Exec::class) {
     group = "release"
-    description = "Build the air-gap release ZIP."
-    dependsOn(generateSha256Sums)
-    archiveFileName.set("ehz-backend-$releaseVersion.zip")
+    description = "Write SHA256SUMS for the Windows release."
+    dependsOn(stageWindowsRelease)
+    inputs.files(fileTree(windowsStagingDir) { exclude("SHA256SUMS") })
+    val sumsFile = windowsStagingDir.map { it.file("SHA256SUMS") }
+    outputs.file(sumsFile)
+    workingDir = windowsStagingDir.get().asFile
+    commandLine(
+        "bash", "-c",
+        "sha256sum img/*.tar.gz docker-compose.yml .env.example 'ИНСТРУКЦИЯ.md' setup.ps1 tools/backup.ps1 tools/restore.ps1 > SHA256SUMS",
+    )
+}
+
+// ---- ZIPs -------------------------------------------------------------------
+
+val bundleLinuxRelease by tasks.registering(Zip::class) {
+    group = "release"
+    description = "Build the Linux air-gap release ZIP."
+    dependsOn(generateLinuxSha256Sums)
+    archiveFileName.set("ehz-backend-$releaseVersion-linux.zip")
     destinationDirectory.set(releaseDir)
-    from(stagingDir)
+    from(linuxStagingDir)
+}
+
+val bundleWindowsRelease by tasks.registering(Zip::class) {
+    group = "release"
+    description = "Build the Windows air-gap release ZIP."
+    dependsOn(generateWindowsSha256Sums)
+    archiveFileName.set("ehz-backend-$releaseVersion-windows.zip")
+    destinationDirectory.set(releaseDir)
+    from(windowsStagingDir)
 }
 
 // ---- GitHub release (sibling task, not called by `release`) -----------------
 
 val publishGithubRelease by tasks.registering(Exec::class) {
     group = "release"
-    description = "Create a GitHub release with the bundled ZIP attached (requires `gh` on PATH)."
-    dependsOn(bundleRelease)
-    val zipFile = bundleRelease.get().archiveFile
-    inputs.file(zipFile)
+    description = "Create a GitHub release with both ZIPs attached (requires `gh` on PATH)."
+    dependsOn(bundleLinuxRelease, bundleWindowsRelease)
+    val linuxZip = bundleLinuxRelease.get().archiveFile
+    val windowsZip = bundleWindowsRelease.get().archiveFile
+    inputs.files(linuxZip, windowsZip)
     workingDir = repoRoot.asFile
     commandLine(
         "gh", "release", "create",
         "v$releaseVersion",
-        zipFile.get().asFile.absolutePath,
+        linuxZip.get().asFile.absolutePath,
+        windowsZip.get().asFile.absolutePath,
         "--title", "ehz-backend $releaseVersion",
         "--notes", "Release $releaseVersion",
     )
@@ -287,6 +323,6 @@ val publishGithubRelease by tasks.registering(Exec::class) {
 
 tasks.register("release") {
     group = "release"
-    description = "Build images, push (if credentials), and bundle the air-gap ZIP."
-    dependsOn(buildImages, pushImages, bundleRelease)
+    description = "Build images, push (if credentials), and bundle the air-gap ZIPs."
+    dependsOn(buildImages, pushImages, bundleLinuxRelease, bundleWindowsRelease)
 }
