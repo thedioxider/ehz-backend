@@ -58,9 +58,9 @@ data class RouteSummaryDto(
 data class SectionSummaryDto(
     val id: UUID,
     @JsonProperty("begin_km")
-    val beginKm: Int,
+    val beginKm: Double,
     @JsonProperty("end_km")
-    val endKm: Int,
+    val endKm: Double,
 )
 
 data class SiteViewDto(

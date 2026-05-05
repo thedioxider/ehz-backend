@@ -85,7 +85,7 @@ class ReportIngestService(
         return wasNew
     }
 
-    private fun upsertRoute(id: UUID, name: String, lengthKm: Int?): Route {
+    private fun upsertRoute(id: UUID, name: String, lengthKm: Double?): Route {
         return routeRepository.findById(id).orElseGet {
             routeRepository.save(Route(id = id, name = name, lengthKm = lengthKm))
         }
@@ -94,8 +94,8 @@ class ReportIngestService(
     private fun upsertSection(
         id: UUID,
         route: Route,
-        beginKm: Int,
-        endKm: Int,
+        beginKm: Double,
+        endKm: Double,
     ): Section {
         return sectionRepository.findById(id).orElseGet {
             sectionRepository.save(Section(id = id, route = route, beginKm = beginKm, endKm = endKm))

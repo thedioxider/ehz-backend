@@ -64,3 +64,8 @@ CREATE INDEX IF NOT EXISTS idx_reports_received_at
 
 --changeset demetrius:003-site-name
 ALTER TABLE sites ADD COLUMN name TEXT NOT NULL DEFAULT '';
+
+--changeset demetrius:004-decimal-lengths
+ALTER TABLE routes  ALTER COLUMN length_km TYPE DOUBLE PRECISION;
+ALTER TABLE sections ALTER COLUMN begin_km  TYPE DOUBLE PRECISION;
+ALTER TABLE sections ALTER COLUMN end_km    TYPE DOUBLE PRECISION;
