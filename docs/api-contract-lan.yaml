@@ -111,8 +111,8 @@ components:
       type: object
       properties:
         length_km:
-          type: integer
-          format: int32
+          type: number
+          format: double
         id:
           type: string
           format: uuid
@@ -122,11 +122,11 @@ components:
       type: object
       properties:
         begin_km:
-          type: integer
-          format: int32
+          type: number
+          format: double
         end_km:
-          type: integer
-          format: int32
+          type: number
+          format: double
         id:
           type: string
           format: uuid
@@ -219,11 +219,11 @@ components:
       type: object
       properties:
         begin_km:
-          type: integer
-          format: int32
+          type: number
+          format: double
         end_km:
-          type: integer
-          format: int32
+          type: number
+          format: double
         id:
           type: string
           format: uuid

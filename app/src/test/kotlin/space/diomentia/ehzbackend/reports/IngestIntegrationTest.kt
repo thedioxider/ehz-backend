@@ -268,11 +268,11 @@ class IngestIntegrationTest : AbstractPostgresIntegrationTest() {
 
         val route = routeRepository.findById(routeId).orElseThrow()
         assertThat(route.name).isEqualTo("Новый маршрут")
-        assertThat(route.lengthKm).isEqualTo(42)
+        assertThat(route.lengthKm).isEqualTo(42.0)
         readInTx {
             val section = sectionRepository.findById(sectionId).orElseThrow()
-            assertThat(section.beginKm).isEqualTo(3)
-            assertThat(section.endKm).isEqualTo(7)
+            assertThat(section.beginKm).isEqualTo(3.0)
+            assertThat(section.endKm).isEqualTo(7.0)
             assertThat(section.route.id).isEqualTo(routeId)
         }
     }
