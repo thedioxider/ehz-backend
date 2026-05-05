@@ -10,8 +10,10 @@ if [ -z "$ARCHIVE" ]; then
     exit 1
 fi
 
-echo "Остановка сервиса..."
-docker compose stop
+if [ -n "$(docker compose ps -q 2>/dev/null)" ]; then
+    echo "Остановка сервиса..."
+    docker compose stop
+fi
 
 echo "Восстановление из $ARCHIVE..."
 docker volume rm ehz_pgdata ehz_appdata 2>/dev/null || true
