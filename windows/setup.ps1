@@ -1,6 +1,17 @@
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    Write-Error "Docker не установлен. Установите Docker Desktop и запустите его перед запуском этого скрипта."
+    exit 1
+}
+
+$composeCheck = docker compose version 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Docker Compose не найден. Убедитесь, что установлен Docker Desktop актуальной версии."
+    exit 1
+}
+
 $appImage = Get-Item img\ehz-backend-app-*.tar.gz -ErrorAction SilentlyContinue | Select-Object -First 1
 $discoveryImage = Get-Item img\ehz-backend-discovery-*.tar.gz -ErrorAction SilentlyContinue | Select-Object -First 1
 
