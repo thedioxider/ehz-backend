@@ -211,6 +211,7 @@ val stageLinuxRelease by tasks.registering(Copy::class) {
     from(repoRoot.file("linux/setup.sh"))
     from(repoRoot.file("linux/backup.sh")) { into("tools") }
     from(repoRoot.file("linux/restore.sh")) { into("tools") }
+    from(repoRoot.file("linux/reset.sh")) { into("tools") }
     into(linuxStagingDir)
 }
 
@@ -223,6 +224,7 @@ val stageWindowsRelease by tasks.registering(Copy::class) {
     from(repoRoot.file("windows/setup.ps1"))
     from(repoRoot.file("windows/backup.ps1")) { into("tools") }
     from(repoRoot.file("windows/restore.ps1")) { into("tools") }
+    from(repoRoot.file("windows/reset.ps1")) { into("tools") }
     into(windowsStagingDir)
 }
 
@@ -236,7 +238,7 @@ val generateLinuxSha256Sums by tasks.registering(Exec::class) {
     workingDir = linuxStagingDir.get().asFile
     commandLine(
         "bash", "-c",
-        "sha256sum img/*.tar.gz docker-compose.yml .env.example 'ИНСТРУКЦИЯ.md' setup.sh tools/backup.sh tools/restore.sh > SHA256SUMS",
+        "sha256sum img/*.tar.gz docker-compose.yml .env.example 'ИНСТРУКЦИЯ.md' setup.sh tools/backup.sh tools/restore.sh tools/reset.sh > SHA256SUMS",
     )
 }
 
@@ -250,7 +252,7 @@ val generateWindowsSha256Sums by tasks.registering(Exec::class) {
     workingDir = windowsStagingDir.get().asFile
     commandLine(
         "bash", "-c",
-        "sha256sum img/*.tar.gz docker-compose.yml .env.example 'ИНСТРУКЦИЯ.md' setup.ps1 tools/backup.ps1 tools/restore.ps1 > SHA256SUMS",
+        "sha256sum img/*.tar.gz docker-compose.yml .env.example 'ИНСТРУКЦИЯ.md' setup.ps1 tools/backup.ps1 tools/restore.ps1 tools/reset.ps1 > SHA256SUMS",
     )
 }
 
