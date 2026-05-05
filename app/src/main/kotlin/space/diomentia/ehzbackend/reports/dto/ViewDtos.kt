@@ -1,5 +1,6 @@
 package space.diomentia.ehzbackend.reports.dto
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.Instant
 import java.util.UUID
@@ -65,6 +66,8 @@ data class SectionSummaryDto(
 data class SiteViewDto(
     val id: UUID,
     val timestamp: Instant,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    val name: String,
     @JsonProperty("position_km")
     val positionKm: Double?,
     val location: CoordinatesViewDto?,

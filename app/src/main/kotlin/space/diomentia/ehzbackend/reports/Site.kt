@@ -35,6 +35,9 @@ class Site(
     @Column(name = "timestamp", nullable = false)
     var timestamp: Instant,
 
+    @Column(name = "name", nullable = false)
+    var name: String = "",
+
     @Column(name = "validation_id")
     var validationId: String? = null,
 

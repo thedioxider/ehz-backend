@@ -12,8 +12,10 @@ if (-not $archive) {
 
 $dataPath = (Resolve-Path "data").Path
 
-Write-Host "Остановка сервиса..."
-docker compose stop
+if (docker compose ps -q 2>$null) {
+    Write-Host "Остановка сервиса..."
+    docker compose stop
+}
 
 Write-Host "Восстановление из $archive..."
 docker volume rm ehz_pgdata ehz_appdata 2>&1 | Out-Null

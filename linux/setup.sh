@@ -2,6 +2,16 @@
 set -e
 cd "$(dirname "$0")"
 
+if ! command -v docker >/dev/null 2>&1; then
+    echo "Ошибка: Docker не установлен. Следуйте инструкциям в ИНСТРУКЦИЯ.md"
+    exit 1
+fi
+
+if ! docker compose version >/dev/null 2>&1; then
+    echo "Ошибка: Docker Compose не найден. Следуйте инструкциям в ИНСТРУКЦИЯ.md"
+    exit 1
+fi
+
 APP_IMAGE=$(ls img/ehz-backend-app-*.tar.gz 2>/dev/null | head -1)
 DISCOVERY_IMAGE=$(ls img/ehz-backend-discovery-*.tar.gz 2>/dev/null | head -1)
 

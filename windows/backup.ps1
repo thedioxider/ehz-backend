@@ -6,8 +6,11 @@ $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $archive = "ehz-backup-$timestamp.tar.gz"
 $dataPath = (Resolve-Path "data").Path
 
-Write-Host "Остановка сервиса..."
-docker compose stop
+$wasRunning = docker compose ps -q 2>$null
+if ($wasRunning) {
+    Write-Host "Остановка сервиса..."
+    docker compose stop
+}
 
 Write-Host "Создание резервной копии..."
 docker run --rm `
@@ -15,8 +18,5 @@ docker run --rm `
     -v ehz_appdata:/src/appdata:ro `
     -v "${dataPath}:/out" `
     alpine tar czf "/out/$archive" -C /src .
-
-Write-Host "Запуск сервиса..."
-docker compose start
 
 Write-Host "Готово: data\$archive"

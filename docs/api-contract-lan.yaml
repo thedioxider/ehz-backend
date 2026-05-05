@@ -144,6 +144,8 @@ components:
         timestamp:
           type: string
           format: date-time
+        name:
+          type: string
         location:
           oneOf:
           - $ref: "#/components/schemas/CoordinatesDto"
@@ -239,6 +241,8 @@ components:
         timestamp:
           type: string
           format: date-time
+        name:
+          type: string
         location:
           oneOf:
           - $ref: "#/components/schemas/CoordinatesViewDto"

@@ -6,8 +6,11 @@ mkdir -p data
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 ARCHIVE="ehz-backup-$TIMESTAMP.tar.gz"
 
-echo "Остановка сервиса..."
-docker compose stop
+WAS_RUNNING=$(docker compose ps -q 2>/dev/null)
+if [ -n "$WAS_RUNNING" ]; then
+    echo "Остановка сервиса..."
+    docker compose stop
+fi
 
 echo "Создание резервной копии..."
 docker run --rm \
@@ -15,8 +18,5 @@ docker run --rm \
     -v ehz_appdata:/src/appdata:ro \
     -v "$(pwd)/data:/out" \
     alpine tar czf "/out/$ARCHIVE" -C /src .
-
-echo "Запуск сервиса..."
-docker compose start
 
 echo "Готово: data/$ARCHIVE"

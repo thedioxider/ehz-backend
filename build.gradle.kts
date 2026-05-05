@@ -10,7 +10,7 @@ plugins {
 
 allprojects {
     group = "space.diomentia"
-    version = providers.gradleProperty("ehz.version").getOrElse("0.1.2")
+    version = providers.gradleProperty("ehz.version").getOrElse("0.1.3")
 
     repositories {
         mavenCentral()

@@ -53,6 +53,7 @@ data class SectionDto(
 data class SiteDto(
     val id: UUID,
     val timestamp: Instant,
+    val name: String = "",
     @JsonProperty("position_km")
     val positionKm: Double? = null,
     val location: CoordinatesDto? = null,
