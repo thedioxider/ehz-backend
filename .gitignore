@@ -42,8 +42,7 @@ bin/
 .DS_Store
 
 ### Project runtime data ###
-# Backup archives accumulate here; scripts are version-controlled via data/.gitignore
-/data/ehz-backup-*
+/data/
 
 ### Environment / secrets ###
 .env
