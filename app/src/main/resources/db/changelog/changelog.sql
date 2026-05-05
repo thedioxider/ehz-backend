@@ -57,3 +57,10 @@ CREATE INDEX idx_reports_route_id   ON reports(route_id);
 CREATE INDEX idx_reports_section_id ON reports(section_id);
 CREATE INDEX idx_sites_report_id    ON sites(report_id);
 CREATE INDEX idx_sections_route_id  ON sections(route_id);
+
+--changeset demetrius:002-dashboard-indexes
+CREATE INDEX IF NOT EXISTS idx_reports_received_at
+    ON reports (received_at DESC);
+
+--changeset demetrius:003-site-name
+ALTER TABLE sites ADD COLUMN name TEXT NOT NULL DEFAULT '';
