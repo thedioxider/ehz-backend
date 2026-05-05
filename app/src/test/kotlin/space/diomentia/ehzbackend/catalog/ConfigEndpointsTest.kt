@@ -52,7 +52,7 @@ class ConfigEndpointsTest : AbstractPostgresIntegrationTest() {
     lateinit var yamlMapper: YAMLMapper
 
     @Test
-    fun `GET api config areas returns seeded catalog as YAML`() {
+    fun `GET api config areas returns empty catalog on clean start`() {
         val response = mockMvc.get("/api/config/areas")
             .andExpect {
                 status { isOk() }
@@ -68,11 +68,8 @@ class ConfigEndpointsTest : AbstractPostgresIntegrationTest() {
         assertThat(body).contains("diagnostic_areas:")
 
         val parsed = yamlMapper.readValue(body, AreasYaml::class.java)
-        assertThat(parsed.diagnosticObjects).anySatisfy { route ->
-            assertThat(route.name).isEqualTo("САЦ-III")
-            assertThat(route.lengthKm).isEqualTo(3600)
-        }
-        assertThat(parsed.diagnosticAreas).hasSizeGreaterThanOrEqualTo(2)
+        assertThat(parsed.diagnosticObjects).isEmpty()
+        assertThat(parsed.diagnosticAreas).isEmpty()
     }
 
     @Test

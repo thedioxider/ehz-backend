@@ -17,5 +17,5 @@ class Route(
     var name: String,
 
     @Column(name = "length_km")
-    var lengthKm: Int? = null,
+    var lengthKm: Double? = null,
 )

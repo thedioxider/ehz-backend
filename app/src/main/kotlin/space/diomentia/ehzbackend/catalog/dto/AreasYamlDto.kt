@@ -27,16 +27,16 @@ data class RouteYaml(
     val id: UUID,
     val name: String,
     @JsonProperty("length_km")
-    val lengthKm: Int? = null,
+    val lengthKm: Double? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class SectionYaml(
     val id: UUID,
     @JsonProperty("begin_km")
-    val beginKm: Int,
+    val beginKm: Double,
     @JsonProperty("end_km")
-    val endKm: Int,
+    val endKm: Double,
     @JsonProperty("route_id")
     val routeId: UUID,
 )

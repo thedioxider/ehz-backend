@@ -21,8 +21,8 @@ class Section(
     var route: Route,
 
     @Column(name = "begin_km", nullable = false)
-    var beginKm: Int,
+    var beginKm: Double,
 
     @Column(name = "end_km", nullable = false)
-    var endKm: Int,
+    var endKm: Double,
 )
