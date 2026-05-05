@@ -95,6 +95,7 @@ class ReportQueryService(
         SiteViewDto(
             id = site.id,
             timestamp = site.timestamp,
+            name = site.name,
             positionKm = site.positionKm,
             location = if (site.lat != null && site.lng != null) {
                 CoordinatesViewDto(site.lat!!, site.lng!!)

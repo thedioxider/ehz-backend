@@ -67,6 +67,7 @@ class ReportIngestService(
             val site = Site(
                 id = siteDto.id,
                 report = report,
+                name = siteDto.name,
                 positionKm = siteDto.positionKm,
                 lat = siteDto.location?.lat,
                 lng = siteDto.location?.lng,
