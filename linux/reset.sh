@@ -16,8 +16,8 @@ echo ""
 
 if [ -n "$(docker compose ps -q 2>/dev/null)" ]; then
     echo "Остановка сервиса..."
-    docker compose down
 fi
+docker compose down
 
 sh "$(dirname "$0")/backup.sh"
 
