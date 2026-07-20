@@ -4,20 +4,6 @@ Field-deployed diagnostic report ingestion service. Runs as three containers
 behind a single `docker compose up`: Postgres, the Spring Boot app, and a
 discovery service that announces the backend on the LAN.
 
-## Install from Docker Hub
-
-Requires Docker + Docker Compose on the host.
-
-```sh
-mkdir ehz && cd ehz
-curl -fLO https://raw.githubusercontent.com/diomentia/ehz-backend/v<VER>/docker-compose.yml
-curl -fLO https://raw.githubusercontent.com/diomentia/ehz-backend/v<VER>/.env.example
-mv .env.example .env
-docker compose up
-```
-
-Open `http://localhost:19080` for the operator dashboard. The API key is shown there.
-
 ## Install from ZIP (air-gap)
 
 Two platform ZIPs are published with each release:
