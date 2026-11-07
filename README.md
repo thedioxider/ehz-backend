@@ -1,6 +1,6 @@
 # ehz-backend
 
-On-premise backend for `ehz-diagnostics-tracker`, an Android app used to inspect the electrochemical (corrosion) protection of gas pipelines in the field. Phones on the local network upload finished inspection reports here. The service stores them in PostgreSQL, saves photos to disk, and serves a read API for admin tools.
+On-premise backend for [`ehz-diagnostics-tracker`](https://github.com/thedioxider/ehz-diagnostics-tracker), an Android app used to inspect the electrochemical (corrosion) protection of gas pipelines in the field. Phones on the local network upload finished inspection reports here. The service stores them in PostgreSQL, saves photos to disk, and serves a read API for admin tools.
 
 It is meant to be installed by a non-technical operator on an offline machine: one `docker compose up -d`, and phones find the server on their own with nothing to configure.
 
@@ -66,25 +66,25 @@ flowchart LR
 
 ### Network
 
-| Container port | Published as | Used by | Access |
-|---|---|---|---|
-| 8081 | `<lan-ip>:19081` | Android app | `GET /api/ping` and `GET /api/info` are open. `PUT /api/reports/{id}` needs the bearer key (401 otherwise). Any other path returns 404 |
-| 8080 | `127.0.0.1:19080` | Operator dashboard: server address, health, report counts, API key and its QR code | Reachable only from the server machine itself |
-| 8082 | not published | Future admin frontend on the Docker network | None. Only containers on the Docker network can reach it |
-| 5353/udp, 5370/udp | host network | `discovery` service | None |
+| Container port     | Published as      | Used by                                                                            | Access                                                                                                                                 |
+| ------------------ | ----------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 8081               | `<lan-ip>:19081`  | Android app                                                                        | `GET /api/ping` and `GET /api/info` are open. `PUT /api/reports/{id}` needs the bearer key (401 otherwise). Any other path returns 404 |
+| 8080               | `127.0.0.1:19080` | Operator dashboard: server address, health, report counts, API key and its QR code | Reachable only from the server machine itself                                                                                          |
+| 8082               | not published     | Future admin frontend on the Docker network                                        | None. Only containers on the Docker network can reach it                                                                               |
+| 5353/udp, 5370/udp | host network      | `discovery` service                                                                | None                                                                                                                                   |
 
 `discovery` is a separate container with host networking. Docker's bridge network doesn't reliably pass broadcast and multicast traffic, and the app always looks for the server on port 5370, so that port can't be remapped.
 
 ## API
 
-| Endpoint | Port | Purpose |
-|---|---|---|
-| `GET /api/ping`, `GET /api/info` | LAN, internal | Health check; build and API contract version |
-| `PUT /api/reports/{id}` | LAN | Upload or replace a report |
-| `GET /api/reports` | internal | Paged list; filters `from`, `to`, `route`, `section`, `inspector` |
-| `GET /api/reports/{id}` | internal | Report with sites and fields |
-| `GET /api/photos/{reportId}/{siteId}/{specId}.webp` | internal | Photo file |
-| `GET /api/config/areas`, `GET /api/config/report-config` | internal | Routes and sections, and the field config, as YAML |
+| Endpoint                                                 | Port          | Purpose                                                           |
+| -------------------------------------------------------- | ------------- | ----------------------------------------------------------------- |
+| `GET /api/ping`, `GET /api/info`                         | LAN, internal | Health check; build and API contract version                      |
+| `PUT /api/reports/{id}`                                  | LAN           | Upload or replace a report                                        |
+| `GET /api/reports`                                       | internal      | Paged list; filters `from`, `to`, `route`, `section`, `inspector` |
+| `GET /api/reports/{id}`                                  | internal      | Report with sites and fields                                      |
+| `GET /api/photos/{reportId}/{siteId}/{specId}.webp`      | internal      | Photo file                                                        |
+| `GET /api/config/areas`, `GET /api/config/report-config` | internal      | Routes and sections, and the field config, as YAML                |
 
 The committed specs are `docs/api-contract-lan.yaml` and `docs/api-contract-internal.yaml`. Swagger UI is served at `/swagger-ui/index.html` on the internal port.
 
